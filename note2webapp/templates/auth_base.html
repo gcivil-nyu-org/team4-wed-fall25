@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Auth | Note2Web{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    .auth-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      padding: 2rem;
+      width: 380px;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+    .auth-card h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: bold;
+      color: #333;
+    }
+    .nav-tabs {
+      border: none;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .nav-tabs .nav-link {
+      border: none;
+      background: #f1f1f1;
+      margin: 0 4px;
+      border-radius: 20px;
+      padding: 6px 18px;
+      color: #555;
+      font-weight: 500;
+    }
+    .nav-tabs .nav-link.active {
+      background: #007bff;
+      color: #fff;
+    }
+    .btn-custom {
+      width: 100%;
+      border-radius: 8px;
+      padding: 10px;
+      font-weight: bold;
+    }
+    .form-control {
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .text-muted a {
+      text-decoration: none;
+      color: #007bff;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

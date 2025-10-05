@@ -1,0 +1,70 @@
+from django.db import models
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+# -----------------------
+# USER PROFILE WITH ROLE
+# -----------------------
+class Profile(models.Model):
+    ROLE_CHOICES = [
+        ("uploader", "Model Uploader"),
+        ("reviewer", "Model Reviewer"),
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="uploader")
+
+    def __str__(self):
+        return f"{self.user.username} ({self.role})"
+
+
+@receiver(post_save, sender=User)
+def create_or_update_profile(sender, instance, created, **kwargs):
+    """Automatically create or update Profile when User is created/updated"""
+    if created:
+        Profile.objects.create(user=instance)
+    else:
+        instance.profile.save()
+
+
+# -----------------------
+# MODEL UPLOAD + VERSION
+# -----------------------
+class ModelUpload(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="uploads")
+    name = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ModelVersion(models.Model):
+    upload = models.ForeignKey(ModelUpload, on_delete=models.CASCADE, related_name="versions")
+    model_file = models.FileField(upload_to="models/")
+    predict_file = models.FileField(upload_to="predict/")
+    tag = models.CharField(max_length=100)
+
+    # NEW FIELD
+    category = models.CharField(
+        max_length=50,
+        choices=[
+            ("research", "Research"),
+            ("production", "Production"),
+            ("testing", "Testing"),
+        ],
+        default="research"
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=[("PENDING", "Pending"), ("PASS", "Pass"), ("FAIL", "Fail")],
+        default="PENDING"
+    )
+    is_active = models.BooleanField(default=False)
+    log = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.upload.name} - v{self.id} ({self.status})"
