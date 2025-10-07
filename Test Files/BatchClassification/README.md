@@ -1,0 +1,7 @@
+| Property                            | Description                                                                                                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Expected input (Python / JSON)**  | A list of JSON records, each having 3 numeric fields.<br>`[{"f1": float, "f2": float, "f3": float}, {...}]`                                                                          |
+| **Example input**                   | `[{"f1": 1.0, "f2": 2.0, "f3": 3.0}, {"f1": -1.2, "f2": 0.0, "f3": 1.5}]`                                                                                                            |
+| **Expected output (Python / JSON)** | A list of results, one per input record.<br>`[{"label": string, "top3": [[string, float], ...]}, {...}]`                                                                             |
+| **Example output**                  | `[{"label": "class_c", "top3": [["class_c", 0.52], ["class_a", 0.21], ["class_b", 0.19]]}, {"label": "class_a", "top3": [["class_a", 0.60], ["class_d", 0.20], ["class_b", 0.10]]}]` |
+| **Use case**                        | Batch processing → multiple inputs, each producing its own label + top-3 class probabilities.                                                                                        |
