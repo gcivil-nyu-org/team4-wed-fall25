@@ -1,0 +1,16 @@
+# Ignore everything
+/**
+
+# Allow main files
+!manage.py
+!Procfile
+!requirements.txt
+!README.md
+
+# Allow Django packages
+!note2web/**
+!note2webapp/**
+
+# Allow EB configs
+!.ebextensions/**
+!.platform/**
