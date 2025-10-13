@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block title %}Note2Web{% endblock %}
+{% block content %}
+
+  {% if page == "list" %}
+    <div class="smooth-card mx-auto" style="max-width: 700px;">
+      <h2 class="mb-4 text-center fw-bold">📂 Your Model Uploads</h2>
+      <ul class="list-group mb-3">
+        {% for upload in uploads %}
+          <li class="list-group-item bg-dark text-light">
+            <a href="?page=detail&pk={{ upload.pk }}">{{ upload.name }}</a>
+          </li>
+        {% empty %}
+          <li class="list-group-item bg-dark text-light">No uploads yet.</li>
+        {% endfor %}
+      </ul>
+      <div class="d-grid">
+        <a href="?page=create" class="btn btn-primary">+ New Upload</a>
+      </div>
+    </div>
+
+  {% elif page == "create" %}
+    <div class="smooth-card mx-auto" style="max-width: 600px;">
+      <h2 class="mb-4 text-center">🆕 Create New Upload</h2>
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Upload Name</label>
+          {{ form.name|add_class:"form-control" }}
+        </div>
+        <div class="d-grid mt-3">
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+      <div class="text-center mt-3">
+        <a href="?page=list">← Back</a>
+      </div>
+    </div>
+
+  {% elif page == "detail" %}
+    <div class="smooth-card mx-auto" style="max-width: 800px;">
+      <h2 class="mb-4 text-center">{{ upload.name }}</h2>
+      <h5>Versions</h5>
+      <ul class="list-group mb-3">
+        {% for version in versions %}
+          <li class="list-group-item bg-dark text-light">
+            v{{ version.id }} -
+            {% if version.status == "PASS" %}
+              <span class="badge bg-success">PASS</span>
+            {% elif version.status == "FAIL" %}
+              <span class="badge bg-danger">FAIL</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">PENDING</span>
+            {% endif %}
+            {% if version.is_active %}
+              <span class="badge bg-info">Active</span>
+            {% endif %}
+            <br>
+            <small>Tag: {{ version.tag }}</small><br>
+            <small>Category: {{ version.category }}</small><br>
+            <small>Log: {{ version.log|default:"No log" }}</small>
+          </li>
+        {% empty %}
+          <li class="list-group-item bg-dark text-light">No versions yet.</li>
+        {% endfor %}
+      </ul>
+      <div class="d-grid">
+        <a href="?page=add_version&pk={{ upload.pk }}" class="btn btn-primary">+ Add Version</a>
+      </div>
+      <div class="text-center mt-3">
+        <a href="?page=list">← Back</a>
+      </div>
+    </div>
+
+  {% elif page == "add_version" %}
+  <div class="card shadow-lg p-4 bg-dark text-light" style="max-width: 700px; margin: 0 auto; border-radius: 15px;">
+      <h3 class="mb-4 text-center fw-bold">🚀 Upload Model Version</h3>
+
+      <!-- Show errors -->
+      {% if form.errors %}
+        <div class="alert alert-danger">
+          <ul>
+            {% for field, errors in form.errors.items %}
+              <li><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <!-- Model File Upload -->
+          <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
+              <p>📂 Upload your <b>.pt</b> model file</p>
+              {{ form.model_file|add_class:"d-none"|attr:"id:id_model_file" }}
+              <button type="button" class="btn btn-success" onclick="document.getElementById('id_model_file').click();">
+                  + Add Model File
+              </button>
+              <p id="modelFileName" class="mt-2 small text-muted">No file chosen</p>
+          </div>
+
+          <!-- Predict File Upload -->
+          <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
+              <p>📂 Upload your <b>.py</b> predict file</p>
+              {{ form.predict_file|add_class:"d-none"|attr:"id:id_predict_file" }}
+              <button type="button" class="btn btn-success" onclick="document.getElementById('id_predict_file').click();">
+                  + Add Predict File
+              </button>
+              <p id="predictFileName" class="mt-2 small text-muted">No file chosen</p>
+          </div>
+
+          <!-- Tag -->
+          <div class="mb-3">
+              <label class="form-label fw-bold">Tag</label>
+              {{ form.tag|add_class:"form-control" }}
+          </div>
+
+          <!-- Category -->
+          <div class="mb-3">
+              <label class="form-label fw-bold">Category</label>
+              {{ form.category|add_class:"form-select" }}
+          </div>
+
+          <!-- Submit -->
+          <div class="d-grid mt-4">
+              <button type="submit" class="btn btn-primary btn-lg">Upload & Validate</button>
+          </div>
+      </form>
+
+      <div class="text-center mt-3">
+          <a href="?page=detail&pk={{ upload.pk }}">← Back</a>
+      </div>
+  </div>
+
+  <script>
+  document.getElementById('id_model_file').addEventListener('change', function() {
+      let name = this.files[0] ? this.files[0].name : "No file chosen";
+      document.getElementById('modelFileName').innerText = name;
+  });
+  document.getElementById('id_predict_file').addEventListener('change', function() {
+      let name = this.files[0] ? this.files[0].name : "No file chosen";
+      document.getElementById('predictFileName').innerText = name;
+  });
+  </script>
+  {% endif %}
+
+{% endblock %}
