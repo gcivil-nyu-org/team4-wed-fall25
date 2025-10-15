@@ -1,5 +1,16 @@
+# Python cache
 __pycache__/
 *.pyc
+
+# Virtual environment
+venv/
+
+# Django stuff
+db.sqlite3
+*.log
+
+# Migrations (optional — keep if model changes are intentional)
+note2webapp/migrations/
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
