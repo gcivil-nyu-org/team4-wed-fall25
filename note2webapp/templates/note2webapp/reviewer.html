@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Reviewer Dashboard{% endblock %}
+
+{% block content %}
+
+{% if page == "list" %}
+  <div class="smooth-card mx-auto" style="max-width: 800px;">
+    <h2 class="mb-4 text-center">🧠 Uploaded Model Versions</h2>
+    <ul class="list-group">
+      {% for version in versions %}
+        <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
+          <a href="?page=detail&pk={{ version.pk }}" class="text-light text-decoration-none">
+            Model #{{ version.pk }} — {{ version.upload.name }}
+          </a>
+          <span class="badge 
+            {% if version.status == 'PASS' %} bg-success 
+            {% elif version.status == 'FAIL' %} bg-danger 
+            {% else %} bg-warning text-dark {% endif %}">
+            {{ version.status }}
+          </span>
+        </li>
+      {% empty %}
+        <li class="list-group-item bg-dark text-light text-center">No models yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+{% elif page == "detail" %}
+  <div class="smooth-card mx-auto" style="max-width: 700px;">
+    <h3 class="text-center mb-3">{{ version.upload.name }} (v{{ version.pk }})</h3>
+
+    <div class="p-3 border rounded bg-secondary bg-opacity-25">
+      <p><strong>Status:</strong> {{ version.status }}</p>
+      <p><strong>Category:</strong> {{ version.category }}</p>
+      <p><strong>Tag:</strong> {{ version.tag }}</p>
+      <p><strong>Created:</strong> {{ version.created_at }}</p>
+      {% if version.log %}
+        <hr>
+        <h5>Validation Log:</h5>
+        <pre class="bg-dark text-light p-3 rounded">{{ version.log }}</pre>
+      {% endif %}
+    </div>
+
+    <div class="d-grid gap-2 mt-4">
+      <a href="?page=add_feedback&pk={{ version.pk }}" class="btn btn-primary">📝 Add Feedback</a>
+      <a href="?page=list" class="btn btn-secondary">← Back</a>
+    </div>
+  </div>
+
+{% elif page == "add_feedback" %}
+  <div class="smooth-card mx-auto" style="max-width: 700px;">
+    <h3 class="text-center mb-4">📝 Add Feedback for {{ version.upload.name }}</h3>
+
+    <form method="post">
+      {% csrf_token %}
+      <textarea name="comment" class="form-control mb-3" rows="4" placeholder="Write feedback..."></textarea>
+
+      <div class="d-grid">
+        <button type="submit" class="btn btn-success">Submit Feedback</button>
+      </div>
+    </form>
+
+    <div class="text-center mt-3">
+      <a href="?page=detail&pk={{ version.pk }}" class="text-light text-decoration-none">← Back</a>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

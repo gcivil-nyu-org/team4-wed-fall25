@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .forms import UploadForm, VersionForm
 from .models import ModelUpload, ModelVersion
 from .utils import validate_model
+from django.http import HttpResponse
 
 
 # -------------------
@@ -126,12 +127,36 @@ def model_uploader_dashboard(request):
     return render(request, "note2webapp/home.html", context)
 
 
-
 # -------------------
-# REVIEWER DASHBOARD
+# REVIEWER DASHBOARD (multi-mode like uploader)
 # -------------------
 @login_required
 def reviewer_dashboard(request):
-    """Simple placeholder for now, will expand later"""
-    versions = ModelVersion.objects.all().order_by("-created_at")
-    return render(request, "note2webapp/reviewer_dashboard.html", {"versions": versions})
+    """Unified reviewer dashboard: list, detail, feedback"""
+    page = request.GET.get("page", "list")
+    pk = request.GET.get("pk")
+
+    context = {"page": page}
+
+    # ---List all uploaded model versions---
+    if page == "list":
+        versions = ModelVersion.objects.all().order_by("-created_at")
+        context["versions"] = versions
+
+    # ---View details of a specific model version---
+    elif page == "detail" and pk:
+        version = get_object_or_404(ModelVersion, pk=pk)
+        context["version"] = version
+        # In future, we’ll show validation logs, files, predictions, etc.
+
+    # ---Add feedback (integrated, not separate view)---
+    elif page == "add_feedback" and pk:
+        version = get_object_or_404(ModelVersion, pk=pk)
+        if request.method == "POST":
+            comment = request.POST.get("comment", "")
+            print(f"📝 Feedback for version {version.id}: {comment}")
+            # Later, store in DB via Feedback model
+            return redirect(f"/dashboard/?page=detail&pk={version.pk}")
+        context["version"] = version
+
+    return render(request, "note2webapp/reviewer.html", context)
