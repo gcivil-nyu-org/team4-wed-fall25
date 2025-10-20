@@ -44,6 +44,7 @@ class ModelVersion(models.Model):
     upload = models.ForeignKey(ModelUpload, on_delete=models.CASCADE, related_name="versions")
     model_file = models.FileField(upload_to="models/")
     predict_file = models.FileField(upload_to="predict/")
+    schema_file = models.FileField(upload_to="schemas/", blank=True, null=True)  # for test data generation
     tag = models.CharField(max_length=100)
 
     # NEW FIELD
