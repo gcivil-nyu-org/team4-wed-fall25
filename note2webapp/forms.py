@@ -16,7 +16,7 @@ class UploadForm(forms.ModelForm):
 class VersionForm(forms.ModelForm):
     class Meta:
         model = ModelVersion
-        fields = ["model_file", "predict_file", "tag", "category"]
+        fields = ["model_file", "predict_file", "schema_file", "tag", "category"]
 
     def clean_model_file(self):
         file = self.cleaned_data.get("model_file")
@@ -28,6 +28,12 @@ class VersionForm(forms.ModelForm):
         file = self.cleaned_data.get("predict_file")
         if file and not file.name.endswith(".py"):
             raise forms.ValidationError("Only .py files are allowed for Predict File")
+        return file
+    
+    def clean_schema_file(self):
+        file = self.cleaned_data.get("schema_file")
+        if file and not file.name.endswith(".json"):
+            raise forms.ValidationError("Only .json files allowed for schema")
         return file
 
     def clean_tag(self):
