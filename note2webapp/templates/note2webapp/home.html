@@ -1,165 +1,347 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
 {% block title %}Note2Web{% endblock %}
+
 {% block content %}
 
-  {% if page == "list" %}
-    <div class="smooth-card mx-auto" style="max-width: 700px;">
-      <h2 class="mb-4 text-center fw-bold">📂 Your Model Uploads</h2>
-      <ul class="list-group mb-3">
-        {% for upload in uploads %}
-          <li class="list-group-item bg-dark text-light">
-            <a href="?page=detail&pk={{ upload.pk }}">{{ upload.name }}</a>
-          </li>
-        {% empty %}
-          <li class="list-group-item bg-dark text-light">No uploads yet.</li>
-        {% endfor %}
-      </ul>
-      <div class="d-grid">
-        <a href="?page=create" class="btn btn-primary">+ New Upload</a>
-      </div>
-    </div>
+{% if page == "list" %}
+<div class="smooth-card mx-auto" style="max-width: 700px;">
+  <h2 class="mb-4 text-center fw-bold">📂 Your Model Uploads</h2>
 
-  {% elif page == "create" %}
-    <div class="smooth-card mx-auto" style="max-width: 600px;">
-      <h2 class="mb-4 text-center">🆕 Create New Upload</h2>
-      <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-          <label class="form-label">Upload Name</label>
-          {{ form.name|add_class:"form-control" }}
+  <!-- Display Messages -->
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <ul class="list-group mb-3">
+    {% for upload in uploads %}
+      <li class="list-group-item bg-dark text-light hover-item" 
+          style="transition: all 0.3s; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px; border-radius: 8px;">
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <a href="?page=detail&pk={{ upload.pk }}" class="text-light text-decoration-none d-flex align-items-center" style="flex: 1; min-width: 0;">
+            <i class="fas fa-folder me-3 text-primary" style="font-size: 20px;"></i>
+            <div>
+              <strong style="font-size: 16px; color: #ffffff;">{{ upload.name }}</strong><br>
+              <small style="color: #adb5bd;">
+                <i class="fas fa-code-branch me-1"></i>Versions: {{ upload.active_versions_count|default:"0" }}
+              </small>
+            </div>
+          </a>
+
+          <!-- Enhanced Delete Button -->
+          <button class="delete-model-btn"
+                  data-model-id="{{ upload.id }}"
+                  data-model-name="{{ upload.name }}"
+                  data-version-count="{{ upload.active_versions_count|default:0 }}"
+                  title="Delete this model permanently">
+            <i class="fas fa-trash-alt me-1"></i> DELETE
+          </button>
         </div>
-        <div class="d-grid mt-3">
-          <button type="submit" class="btn btn-primary">Create</button>
-        </div>
-      </form>
-      <div class="text-center mt-3">
-        <a href="?page=list">← Back</a>
-      </div>
-    </div>
+      </li>
+    {% empty %}
+      <li class="list-group-item bg-dark text-light text-center" style="padding: 40px 20px;">
+        <i class="fas fa-inbox fa-3x mb-3 text-muted"></i>
+        <p class="mb-0">No uploads yet.</p>
+      </li>
+    {% endfor %}
+  </ul>
 
-  {% elif page == "detail" %}
-    <div class="smooth-card mx-auto" style="max-width: 800px;">
-      <h2 class="mb-4 text-center">{{ upload.name }}</h2>
-      <h5>Versions</h5>
-      <ul class="list-group mb-3">
-        {% for version in versions %}
-          <li class="list-group-item bg-dark text-light">
-            v{{ version.id }} -
-            {% if version.status == "PASS" %}
-              <span class="badge bg-success">PASS</span>
-            {% elif version.status == "FAIL" %}
-              <span class="badge bg-danger">FAIL</span>
-            {% else %}
-              <span class="badge bg-warning text-dark">PENDING</span>
-            {% endif %}
-            {% if version.is_active %}
-              <span class="badge bg-info">Active</span>
-            {% endif %}
-            <br>
-            <small>Tag: {{ version.tag }}</small><br>
-            <small>Category: {{ version.category }}</small><br>
-            <small>Log: {{ version.log|default:"No log" }}</small>
-          </li>
-        {% empty %}
-          <li class="list-group-item bg-dark text-light">No versions yet.</li>
-        {% endfor %}
-      </ul>
-      <div class="d-grid">
-        <a href="?page=add_version&pk={{ upload.pk }}" class="btn btn-primary">+ Add Version</a>
-      </div>
-      <div class="text-center mt-3">
-        <a href="?page=list">← Back</a>
-      </div>
-    </div>
+  <div class="d-grid">
+    <a href="?page=create" class="btn btn-primary btn-lg new-upload-btn">+ New Upload</a>
+  </div>
+</div>
 
-  {% elif page == "add_version" %}
-  <div class="card shadow-lg p-4 bg-dark text-light" style="max-width: 700px; margin: 0 auto; border-radius: 15px;">
-      <h3 class="mb-4 text-center fw-bold">🚀 Upload Model Version</h3>
+<style>
+/* Hovered List Item */
+.hover-item {
+  border-left: 4px solid transparent !important;
+  cursor: pointer;
+}
+.hover-item:hover {
+  background-color: #3d4349 !important;
+  border-left: 4px solid #0d6efd !important;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
 
-      <!-- Show errors -->
-      {% if form.errors %}
-        <div class="alert alert-danger">
-          <ul>
-            {% for field, errors in form.errors.items %}
-              <li><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</li>
-            {% endfor %}
-          </ul>
-        </div>
+/* ✨ Improved Delete Button */
+.delete-model-btn {
+  background: linear-gradient(145deg, #dc3545, #c82333);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  margin-left: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+}
+.delete-model-btn:hover {
+  background: linear-gradient(145deg, #f03e4c, #dc3545);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(220, 53, 69, 0.4);
+}
+.delete-model-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 6px rgba(220, 53, 69, 0.4);
+}
+.delete-model-btn:focus {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Blue Upload Button (consistent design) */
+.new-upload-btn {
+  background: linear-gradient(145deg, #0d6efd, #0a58ca);
+  border: none;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.25s ease-in-out;
+  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+}
+.new-upload-btn:hover {
+  background: linear-gradient(145deg, #3085ff, #0d6efd);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(13, 110, 253, 0.4);
+}
+</style>
+
+<script>
+// Debug
+console.log('Delete buttons found:', document.querySelectorAll('.delete-model-btn').length);
+
+// Delete model handler
+document.querySelectorAll('.delete-model-btn').forEach(button => {
+  button.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const modelId = this.dataset.modelId;
+    const modelName = this.dataset.modelName;
+    const versionCount = parseInt(this.dataset.versionCount) || 0;
+
+    console.log('Delete clicked:', modelName, 'Versions:', versionCount);
+
+    if (versionCount > 0) {
+      alert('❌ Cannot delete model with ' + versionCount + ' active versions. Please delete all versions first.');
+      return;
+    }
+
+    if (confirm(`⚠️ Are you sure you want to permanently delete the model "${modelName}"?\n\nThis action cannot be undone.`)) {
+      fetch(`/delete-model/${modelId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('✅ ' + data.message);
+          location.reload();
+        } else {
+          alert('❌ Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        alert('❌ Error deleting model. Please try again.');
+        console.error('Error:', error);
+      });
+    }
+  });
+});
+
+// Helper to get CSRF token
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+
+{% elif page == "create" %}
+<div class="smooth-card mx-auto" style="max-width: 600px;">
+  <h2 class="mb-4 text-center">🆕 Create New Upload</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label">Upload Name</label>
+      {{ form.name|add_class:"form-control" }}
+      {% if form.name.errors %}
+        <div class="text-danger mt-1">{{ form.name.errors }}</div>
       {% endif %}
+    </div>
+    <div class="d-grid mt-3">
+      <button type="submit" class="btn btn-primary">Create</button>
+    </div>
+  </form>
 
-      <form method="post" enctype="multipart/form-data">
-          {% csrf_token %}
+  <div class="text-center mt-3">
+    <a href="?page=list">← Back</a>
+  </div>
+</div>
 
-          <!-- Model File Upload -->
-          <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-              <p>📂 Upload your <b>.pt</b> model file</p>
-              {{ form.model_file|add_class:"d-none"|attr:"id:id_model_file" }}
-              <button type="button" class="btn btn-success" onclick="document.getElementById('id_model_file').click();">
-                  + Add Model File
-              </button>
-              <p id="modelFileName" class="mt-2 small text-muted">No file chosen</p>
-          </div>
-
-          <!-- Predict File Upload -->
-          <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-              <p>📂 Upload your <b>.py</b> predict file</p>
-              {{ form.predict_file|add_class:"d-none"|attr:"id:id_predict_file" }}
-              <button type="button" class="btn btn-success" onclick="document.getElementById('id_predict_file').click();">
-                  + Add Predict File
-              </button>
-              <p id="predictFileName" class="mt-2 small text-muted">No file chosen</p>
-          </div>
-
-          <!-- Schema File Upload -->
-          <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-              <p>📄 Upload your <b>schema.json</b> file</p>
-              {{ form.schema_file|add_class:"d-none"|attr:"id:id_schema_file" }}
-              <button type="button" class="btn btn-success" onclick="document.getElementById('id_schema_file').click();">
-                  + Add Schema File
-              </button>
-              <p id="schemaFileName" class="mt-2 small text-muted">No file chosen</p>
-          </div>
-
-          <!-- Tag -->
-          <div class="mb-3">
-              <label class="form-label fw-bold">Tag</label>
-              {{ form.tag|add_class:"form-control" }}
-          </div>
-
-          <!-- Category -->
-          <div class="mb-3">
-              <label class="form-label fw-bold">Category</label>
-              {{ form.category|add_class:"form-select" }}
-          </div>
-
-          <!-- Submit -->
-          <div class="d-grid mt-4">
-              <button type="submit" class="btn btn-primary btn-lg">Upload & Validate</button>
-          </div>
-      </form>
-
-      <div class="text-center mt-3">
-          <a href="?page=detail&pk={{ upload.pk }}">← Back</a>
-      </div>
+{% elif page == "detail" %}
+<div class="smooth-card mx-auto" style="max-width: 800px;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>{{ upload.name }}</h2>
+    <a href="{% url 'model_versions' upload.id %}" class="btn btn-info">
+      <i class="fas fa-code-branch"></i> Manage Versions
+    </a>
   </div>
 
-  <script>
-  document.getElementById('id_model_file').addEventListener('change', function() {
-      let name = this.files[0] ? this.files[0].name : "No file chosen";
-      document.getElementById('modelFileName').innerText = name;
-  });
-  document.getElementById('id_predict_file').addEventListener('change', function() {
-      let name = this.files[0] ? this.files[0].name : "No file chosen";
-      document.getElementById('predictFileName').innerText = name;
-  });
-  </script>
-  <script>
-  document.getElementById('id_schema_file').addEventListener('change', function() {
-      let name = this.files[0] ? this.files[0].name : "No file chosen";
-      document.getElementById('schemaFileName').innerText = name;
-  });
-  </script>
+  <h5>Versions</h5>
+  <ul class="list-group mb-3">
+    {% for version in versions %}
+      <li class="list-group-item bg-dark text-light {% if version.is_deleted %}opacity-75{% endif %}">
+        <span class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
+          v{{ version.id }} -
+          {% if version.status == "PASS" %}
+            <span class="badge bg-success">PASS</span>
+          {% elif version.status == "FAIL" %}
+            <span class="badge bg-danger">FAIL</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">PENDING</span>
+          {% endif %}
+          {% if version.is_active and not version.is_deleted %}
+            <span class="badge bg-info">Active</span>
+          {% endif %}
+          {% if version.is_deleted %}
+            <span class="badge bg-danger">Deleted</span>
+          {% endif %}
+        </span><br>
+        <small>Tag: {{ version.tag }}</small><br>
+        <small>Category: {{ version.get_category_display }}</small><br>
+        <small>Log: {{ version.log|default:"No log" }}</small>
+      </li>
+    {% empty %}
+      <li class="list-group-item bg-dark text-light">No versions yet.</li>
+    {% endfor %}
+  </ul>
+
+  <div class="d-grid gap-2">
+    <a href="?page=add_version&pk={{ upload.pk }}" class="btn btn-primary">+ Add Version</a>
+  </div>
+
+  <div class="text-center mt-3">
+    <a href="?page=list">← Back</a>
+  </div>
+</div>
+
+{% elif page == "add_version" %}
+<div class="card shadow-lg p-4 bg-dark text-light" style="max-width: 700px; margin: 0 auto; border-radius: 15px;">
+  <h3 class="mb-4 text-center fw-bold">🚀 Upload Model Version</h3>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
   {% endif %}
+
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <ul>
+        {% for field, errors in form.errors.items %}
+          <li><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
+      <p>📂 Upload your <b>.pt</b> model file</p>
+      {{ form.model_file|add_class:"d-none"|attr:"id:id_model_file" }}
+      <button type="button" class="btn btn-success" onclick="document.getElementById('id_model_file').click();">
+        + Add Model File
+      </button>
+      <p id="modelFileName" class="mt-2 small text-muted">No file chosen</p>
+    </div>
+
+    <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
+      <p>📂 Upload your <b>.py</b> predict file</p>
+      {{ form.predict_file|add_class:"d-none"|attr:"id:id_predict_file" }}
+      <button type="button" class="btn btn-success" onclick="document.getElementById('id_predict_file').click();">
+        + Add Predict File
+      </button>
+      <p id="predictFileName" class="mt-2 small text-muted">No file chosen</p>
+    </div>
+
+    <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
+      <p>📄 Upload your <b>schema.json</b> file</p>
+      {{ form.schema_file|add_class:"d-none"|attr:"id:id_schema_file" }}
+      <button type="button" class="btn btn-success" onclick="document.getElementById('id_schema_file').click();">
+        + Add Schema File
+      </button>
+      <p id="schemaFileName" class="mt-2 small text-muted">No file chosen</p>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-bold">Tag</label>
+      {{ form.tag|add_class:"form-control" }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-bold">Category</label>
+      {{ form.category|add_class:"form-select" }}
+    </div>
+
+    <div class="d-grid mt-4">
+      <button type="submit" class="btn btn-primary btn-lg">Upload & Validate</button>
+    </div>
+  </form>
+
+  <div class="text-center mt-3">
+    <a href="?page=detail&pk={{ upload.pk }}">← Back</a>
+  </div>
+</div>
+
+<script>
+document.getElementById('id_model_file').addEventListener('change', e => {
+  document.getElementById('modelFileName').innerText = e.target.files[0]?.name || "No file chosen";
+});
+document.getElementById('id_predict_file').addEventListener('change', e => {
+  document.getElementById('predictFileName').innerText = e.target.files[0]?.name || "No file chosen";
+});
+document.getElementById('id_schema_file').addEventListener('change', e => {
+  document.getElementById('schemaFileName').innerText = e.target.files[0]?.name || "No file chosen";
+});
+</script>
+{% endif %}
 
 {% endblock %}

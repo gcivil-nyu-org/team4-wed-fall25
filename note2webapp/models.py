@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 
 # -----------------------
@@ -47,7 +48,6 @@ class ModelVersion(models.Model):
     schema_file = models.FileField(upload_to="schemas/", blank=True, null=True)  # for test data generation
     tag = models.CharField(max_length=100)
 
-    # NEW FIELD
     category = models.CharField(
         max_length=50,
         choices=[
@@ -66,6 +66,13 @@ class ModelVersion(models.Model):
     is_active = models.BooleanField(default=False)
     log = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # ADD THESE NEW FIELDS FOR SOFT DELETE
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.upload.name} - v{self.id} ({self.status})"
