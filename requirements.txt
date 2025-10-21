@@ -1,25 +1,15 @@
-# Core Django
 asgiref==3.9.2
 Django==4.2.25
 django-widget-tweaks==1.5.0
-sqlparse==0.5.3
-
-# Torch dependencies (order matters)
-numpy==1.26.4
 filelock==3.19.1
 fsspec==2025.9.0
-sympy==1.14.0
-networkx==3.2.1
-mpmath==1.3.0
-typing_extensions==4.15.0
-
-# Torch (CPU build)
-torch==2.2.2+cpu
--f https://download.pytorch.org/whl/torch_stable.html
-
-# Web server
 gunicorn
-
-# Templating
 Jinja2==3.1.6
 MarkupSafe==3.0.3
+mpmath==1.3.0
+networkx==3.2.1
+sqlparse==0.5.3
+sympy==1.14.0
+torch==2.2.2+cpu
+-f https://download.pytorch.org/whl/torch_stable.html
+typing_extensions==4.15.0
