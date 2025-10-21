@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ model_upload.name }} - Versions{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ model_upload.name }} - Version Management</h2>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tag</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Uploaded</th>
+                            <th>State</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for version in versions %}
+                        <tr class="{% if version.is_deleted %}table-secondary{% endif %}" 
+                            data-version-id="{{ version.id }}">
+                            <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
+                                <strong>{{ version.tag }}</strong>
+                                {% if version.is_active and not version.is_deleted %}
+                                <span class="badge bg-success ms-2">Active</span>
+                                {% endif %}
+                            </td>
+                            <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
+                                <span class="badge bg-info">{{ version.get_category_display }}</span>
+                            </td>
+                            <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
+                                {% if version.status == "PASS" %}
+                                <span class="badge bg-success">Pass</span>
+                                {% elif version.status == "FAIL" %}
+                                <span class="badge bg-danger">Fail</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
+                                {{ version.created_at|date:"M d, Y H:i" }}
+                            </td>
+                            <td>
+                                {% if version.is_deleted %}
+                                <span class="badge bg-danger">Deleted</span>
+                                <br><small class="text-muted">{{ version.deleted_at|date:"M d, Y H:i" }}</small>
+                                {% else %}
+                                <span class="badge bg-primary">Available</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not version.is_deleted %}
+                                    {% if version.is_active %}
+                                    <!-- Deprecate active version -->
+                                    <form method="post" action="{% url 'deprecate_version' version.id %}" 
+                                          class="d-inline deprecate-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-warning" title="Deprecate (deactivate) this version">
+                                            <i class="fas fa-times-circle"></i> Deprecate
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <!-- Activate non-active version -->
+                                    <form method="post" action="{% url 'activate_version' version.id %}" 
+                                          class="d-inline activate-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-success" title="Make this version active">
+                                            <i class="fas fa-check-circle"></i> Activate
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-sm btn-danger delete-version-btn" 
+                                            data-version-id="{{ version.id }}"
+                                            data-version-tag="{{ version.tag }}"
+                                            {% if version.is_active %}data-is-active="true"{% endif %}
+                                            title="Delete this version">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p>No versions found for this model</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Card - Fixed for Django -->
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Summary</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Total Versions:</strong> {{ total_count }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Active:</strong> {{ active_count }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Available:</strong> {{ available_count }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Deleted:</strong> {{ deleted_count }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.text-decoration-line-through {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+</style>
+
+<script>
+// Handle delete version
+document.querySelectorAll('.delete-version-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const versionId = this.dataset.versionId;
+        const versionTag = this.dataset.versionTag;
+        const isActive = this.dataset.isActive === 'true';
+        
+        if (isActive) {
+            alert('Cannot delete active version. Please deprecate it first.');
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to delete version "${versionTag}"?\n\nThis will:\n- Mark the version as deleted\n- Remove all associated files from the server\n\nThis action cannot be undone.`)) {
+            fetch(`/delete-version/${versionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mark the row as deleted with strikethrough
+                    const row = document.querySelector(`tr[data-version-id="${versionId}"]`);
+                    const cells = row.querySelectorAll('td');
+                    
+                    // Add strikethrough to first 4 cells
+                    for (let i = 0; i < 4; i++) {
+                        cells[i].classList.add('text-decoration-line-through');
+                    }
+                    
+                    // Update state column
+                    cells[4].innerHTML = '<span class="badge bg-danger">Deleted</span><br><small class="text-muted">Just now</small>';
+                    
+                    // Update actions column
+                    cells[5].innerHTML = '<span class="text-muted">-</span>';
+                    
+                    // Add secondary background
+                    row.classList.add('table-secondary');
+                    
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error deleting version. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+    });
+});
+
+// Handle activate version with AJAX
+document.querySelectorAll('.activate-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const url = this.action;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload page to show updated active status
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error activating version. Please try again.');
+            console.error('Error:', error);
+        });
+    });
+});
+
+// Handle deprecate version with AJAX
+document.querySelectorAll('.deprecate-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const url = this.action;
+        
+        if (confirm('Are you sure you want to deprecate this active version? It will be deactivated.')) {
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload page to show updated status
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error deprecating version. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
