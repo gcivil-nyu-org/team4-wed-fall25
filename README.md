@@ -95,7 +95,7 @@ graph TD
 5. **Start local server**
    python manage.py runserver
 
-☁️ Deployment (AWS Elastic Beanstalk)
+### ☁️ Deployment (AWS Elastic Beanstalk)
 
 Travis CI automates validation, linting, and deployment:
 
@@ -114,7 +114,7 @@ On success, auto-deploy to Elastic Beanstalk
 .travis.yml includes CPU validation, test coverage, and deployment configuration.
 
 
-🔬 Testing
+### 🔬 Testing
 # Run all tests with coverage
 coverage run manage.py test
 coverage report
@@ -123,14 +123,14 @@ Style checks via black --check and flake8
 CI status visible on Travis badge (top of README)
 
 
-🤝 Contributing
+### 🤝 Contributing
 
 Contributions are welcome!
 Please open an issue or submit a pull request following the existing code style (black, flake8).
 Ensure your changes pass all tests before submission.
 
 
-📂 Repository Info
+### 📂 Repository Info
 
 Primary Branches: develop, main
 
