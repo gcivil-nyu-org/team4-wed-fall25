@@ -57,21 +57,22 @@ flowchart TD
 ---
 
 ### 🧩 Folder Structure
-team4-wed-fall25/
-├── note2webapp/ # Core Django app
-│ ├── models.py
-│ ├── views.py
-│ ├── urls.py
-│ ├── templates/
-│ └── static/
-│
-├── staticfiles/ # Compiled CSS/JS assets
-├── manage.py # Django entrypoint
-├── requirements.txt # Python dependencies
-├── .travis.yml # CI/CD pipeline
-├── Procfile # AWS Elastic Beanstalk process definition
-├── .platform/ # AWS EB Nginx configs
-└── README.md
+```mermaid
+graph TD
+    A["team4-wed-fall25/"] --> B["note2webapp/"]
+    B --> C["models.py"]
+    B --> D["views.py"]
+    B --> E["urls.py"]
+    B --> F["templates/"]
+    B --> G["static/"]
+    A --> H["staticfiles/"]
+    A --> I["manage.py"]
+    A --> J["requirements.txt"]
+    A --> K[".travis.yml"]
+    A --> L["Procfile"]
+    A --> M[".platform/"]
+    A --> N["README.md"]
+```
 
 ---
 
