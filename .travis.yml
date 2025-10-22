@@ -1,0 +1,58 @@
+language: python
+python:
+  - "3.11"
+
+branches:
+  only:
+    - develop
+    - main
+
+env:
+  global:
+    - DJANGO_SETTINGS_MODULE=note2web.settings
+    - PYTHONPATH=$HOME/builds/gcivil-nyu-org/team4-wed-fall25
+    - AWS_REGION=us-west-2
+    - EB_APP_NAME=note2web
+
+install:
+  - pip install -r requirements.txt
+  - pip install black flake8 coverage coveralls
+
+before_script:
+  - python manage.py migrate
+
+script:
+  # Run Black in check mode
+  - black --check --exclude "migrations|venv|\.git|__pycache__|\.ebextensions|media" .
+
+  # Run Flake8 (will use .flake8 config)
+  - flake8 .
+
+  # Run tests with coverage
+  - coverage run manage.py test
+
+after_success:
+  - coveralls --service=travis-pro
+
+deploy:
+  # Deploy staging from develop branch
+  - provider: elasticbeanstalk
+    region: "us-west-2"
+    app: "note2web"
+    env: "note2web-staging-clean"
+    bucket_name: "elasticbeanstalk-us-west-2-197990254697"
+    on:
+      branch: develop
+    access_key_id: $AWS_ACCESS_KEY_ID
+    secret_access_key: $AWS_SECRET_ACCESS_KEY
+  
+  # Deploy production from main branch
+  - provider: elasticbeanstalk
+    region: "us-west-2"
+    app: "note2web"
+    env: "note2web-prod"
+    bucket_name: "elasticbeanstalk-us-west-2-197990254697"
+    on:
+      branch: main
+    access_key_id: $AWS_ACCESS_KEY_ID
+    secret_access_key: $AWS_SECRET_ACCESS_KEY

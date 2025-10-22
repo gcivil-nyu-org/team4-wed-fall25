@@ -1,6 +1,7 @@
 from django import forms
 from .models import ModelUpload, ModelVersion
 
+
 # -------------------------
 # Upload Form (for new upload)
 # -------------------------
@@ -29,7 +30,7 @@ class VersionForm(forms.ModelForm):
         if file and not file.name.endswith(".py"):
             raise forms.ValidationError("Only .py files are allowed for Predict File")
         return file
-    
+
     def clean_schema_file(self):
         file = self.cleaned_data.get("schema_file")
         if file and not file.name.endswith(".json"):

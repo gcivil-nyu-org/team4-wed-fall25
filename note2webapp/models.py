@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils import timezone
 
 
 # -----------------------
@@ -42,10 +41,14 @@ class ModelUpload(models.Model):
 
 
 class ModelVersion(models.Model):
-    upload = models.ForeignKey(ModelUpload, on_delete=models.CASCADE, related_name="versions")
+    upload = models.ForeignKey(
+        ModelUpload, on_delete=models.CASCADE, related_name="versions"
+    )
     model_file = models.FileField(upload_to="models/")
     predict_file = models.FileField(upload_to="predict/")
-    schema_file = models.FileField(upload_to="schemas/", blank=True, null=True)  # for test data generation
+    schema_file = models.FileField(
+        upload_to="schemas/", blank=True, null=True
+    )  # for test data generation
     tag = models.CharField(max_length=100)
 
     category = models.CharField(
@@ -55,24 +58,24 @@ class ModelVersion(models.Model):
             ("production", "Production"),
             ("testing", "Testing"),
         ],
-        default="research"
+        default="research",
     )
 
     status = models.CharField(
         max_length=20,
         choices=[("PENDING", "Pending"), ("PASS", "Pass"), ("FAIL", "Fail")],
-        default="PENDING"
+        default="PENDING",
     )
     is_active = models.BooleanField(default=False)
     log = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     # ADD THESE NEW FIELDS FOR SOFT DELETE
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.upload.name} - v{self.id} ({self.status})"

@@ -1,14 +1,10 @@
 import importlib.util
-import torch
 import traceback
-import json, os
+import json
+import os
 
-TYPE_MAP = {
-    "float": float,
-    "int": int,
-    "str": str,
-    "bool": bool
-}
+TYPE_MAP = {"float": float, "int": int, "str": str, "bool": bool}
+
 
 def generate_dummy_input(schema_path):
     with open(schema_path, "r") as f:
@@ -30,6 +26,7 @@ def generate_dummy_input(schema_path):
             raise ValueError(f"Unsupported type: {typ}")
     return dummy, schema.get("output", {})
 
+
 def validate_model(version):
     try:
         # 🔁 Change to directory containing model.pt
@@ -37,7 +34,9 @@ def validate_model(version):
         os.chdir(model_dir)
 
         # ✅ Dynamically import predict.py
-        spec = importlib.util.spec_from_file_location("predict", version.predict_file.path)
+        spec = importlib.util.spec_from_file_location(
+            "predict", version.predict_file.path
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
@@ -60,7 +59,9 @@ def validate_model(version):
             if key not in output:
                 raise Exception(f"Missing key in output: {key}")
             if not isinstance(output[key], TYPE_MAP.get(typ)):
-                raise Exception(f"Wrong type for '{key}': expected {typ}, got {type(output[key]).__name__}")
+                raise Exception(
+                    f"Wrong type for '{key}': expected {typ}, got {type(output[key]).__name__}"
+                )
 
         version.status = "PASS"
         version.log = f"Validation successful ✅\nInput: {json.dumps(dummy_input)}\nOutput: {json.dumps(output, indent=2)}"
