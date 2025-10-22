@@ -30,14 +30,18 @@ Upload your `model.pt` and `predict.py`, validate them once on CPU, and instantl
 
 ### 🏗️ Architecture
 Google Colab (Train)
-↓ Export (model.pt + predict.py)
-↓
+│
+▼
+Export (model.pt + predict.py)
+│
+▼
 Note2Web Django App
 ├── Upload & Validation (CPU only)
-├── Versioning + Rollback
+├── Versioning & Rollback
 ├── Prediction UI (HTML/CSS/JS)
 └── Feedback & Audit Logs
-↓
+│
+▼
 AWS Elastic Beanstalk (Deployment)
 
 ---
@@ -57,7 +61,6 @@ AWS Elastic Beanstalk (Deployment)
 
 ### 🧩 Folder Structure
 team4-wed-fall25/
-│
 ├── note2webapp/ # Core Django app
 │ ├── models.py
 │ ├── views.py
@@ -69,8 +72,8 @@ team4-wed-fall25/
 ├── manage.py # Django entrypoint
 ├── requirements.txt # Python dependencies
 ├── .travis.yml # CI/CD pipeline
-├── Procfile # EB process definition
-├── .platform/ # AWS EB nginx configs
+├── Procfile # AWS Elastic Beanstalk process definition
+├── .platform/ # AWS EB Nginx configs
 └── README.md
 
 ---
