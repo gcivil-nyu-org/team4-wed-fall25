@@ -1,5 +1,6 @@
 # Note2Web  
 [![Travis Build Status](https://app.travis-ci.com/gcivil-nyu-org/team4-wed-fall25.svg?token=9qX1QrRx4xW3zKHmcNRj&branch=develop)](https://app.travis-ci.com/gcivil-nyu-org/team4-wed-fall25)
+[![Coverage Status](https://coveralls.io/repos/github/gcivil-nyu-org/team4-wed-fall25/badge.svg)](https://coveralls.io/github/gcivil-nyu-org/team4-wed-fall25)
 
 ---
 
