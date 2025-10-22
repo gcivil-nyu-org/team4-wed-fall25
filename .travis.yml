@@ -45,11 +45,6 @@ deploy:
       branch: develop
     access_key_id: $AWS_ACCESS_KEY_ID
     secret_access_key: $AWS_SECRET_ACCESS_KEY
-<<<<<<< HEAD
-  
-=======
-
->>>>>>> a5f1a170a74281ec52f92a9b163c8bb4b9a1fdda
   # Deploy production from main branch
   - provider: elasticbeanstalk
     region: "us-west-2"
