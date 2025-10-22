@@ -23,7 +23,7 @@ before_script:
 
 script:
   # Run Black in check mode
-  - black --check --exclude "migrations|venv|\.git|_pycache_|\.ebextensions|media" .
+  - black --check --exclude "migrations|venv|\.git|__pycache__|\.ebextensions|media" .
 
   # Run Flake8 (will use .flake8 config)
   - flake8 .
