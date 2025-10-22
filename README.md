@@ -28,21 +28,17 @@ Upload your `model.pt` and `predict.py`, validate them once on CPU, and instantl
 
 ---
 
-### 🏗️ Architecture
-Google Colab (Train)
-│
-▼
-Export (model.pt + predict.py)
-│
-▼
-Note2Web Django App
-├── Upload & Validation (CPU only)
-├── Versioning & Rollback
-├── Prediction UI (HTML/CSS/JS)
-└── Feedback & Audit Logs
-│
-▼
-AWS Elastic Beanstalk (Deployment)
+### 🏗️ Architecture (Mermaid Diagram)
+
+```mermaid
+flowchart TD
+    A[Google Colab<br/>(Train Model)] --> B[Export<br/>model.pt + predict.py]
+    B --> C[Note2Web Django App]
+    C --> D[Upload & Validation<br/>(CPU only)]
+    C --> E[Versioning & Rollback]
+    C --> F[Prediction UI<br/>(HTML/CSS/JS)]
+    C --> G[Feedback & Audit Logs]
+    G --> H[AWS Elastic Beanstalk<br/>(Deployment)]
 
 ---
 
