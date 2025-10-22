@@ -24,10 +24,10 @@ before_script:
 script:
   # Run Black in check mode
   - black --check --exclude "migrations|venv|\.git|__pycache__|\.ebextensions|media" .
-  
+
   # Run Flake8 (will use .flake8 config)
   - flake8 .
-  
+
   # Run tests with coverage
   - coverage run manage.py test
 
@@ -45,7 +45,11 @@ deploy:
       branch: develop
     access_key_id: $AWS_ACCESS_KEY_ID
     secret_access_key: $AWS_SECRET_ACCESS_KEY
+<<<<<<< HEAD
   
+=======
+
+>>>>>>> a5f1a170a74281ec52f92a9b163c8bb4b9a1fdda
   # Deploy production from main branch
   - provider: elasticbeanstalk
     region: "us-west-2"
