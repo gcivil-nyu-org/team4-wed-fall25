@@ -39,6 +39,7 @@ flowchart TD
     C --> F["Prediction UI - HTML/CSS/JS"]
     C --> G["Feedback & Audit Logs"]
     G --> H["AWS Elastic Beanstalk - Deployment"]
+```
 
 ---
 
