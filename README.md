@@ -32,13 +32,13 @@ Upload your `model.pt` and `predict.py`, validate them once on CPU, and instantl
 
 ```mermaid
 flowchart TD
-    A[Google Colab<br/>(Train Model)] --> B[Export<br/>model.pt + predict.py]
+    A[Google Colab (Train Model)] --> B[Export: model.pt + predict.py]
     B --> C[Note2Web Django App]
-    C --> D[Upload & Validation<br/>(CPU only)]
+    C --> D[Upload & Validation (CPU only)]
     C --> E[Versioning & Rollback]
-    C --> F[Prediction UI<br/>(HTML/CSS/JS)]
+    C --> F[Prediction UI (HTML / CSS / JS)]
     C --> G[Feedback & Audit Logs]
-    G --> H[AWS Elastic Beanstalk<br/>(Deployment)]
+    G --> H[AWS Elastic Beanstalk (Deployment)]
 
 ---
 
