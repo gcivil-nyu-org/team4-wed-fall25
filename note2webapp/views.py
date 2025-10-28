@@ -70,6 +70,22 @@ def dashboard(request):
         return render(request, "note2webapp/other_dashboard.html")
 
 
+@login_required
+def validation_failed(request, version_id):
+    """View for displaying validation failure details"""
+    version = get_object_or_404(ModelVersion, id=version_id, upload__user=request.user)
+    if version.status != "FAIL":
+        return redirect("model_versions", model_id=version.upload.id)
+
+    return render(
+        request,
+        "note2webapp/validation_failed.html",
+        {
+            "version": version,
+        },
+    )
+
+
 # -------------------
 # MODEL UPLOADER DASHBOARD
 # -------------------
@@ -81,9 +97,11 @@ def model_uploader_dashboard(request):
     # 👇 only show this uploader's models
     uploads = ModelUpload.objects.filter(user=request.user).order_by("-created_at")
 
-    # Add active_versions_count to EVERY upload object
+    # Add active_versions_count to EVERY upload object (only count PASSing versions)
     for upload in uploads:
-        upload.active_versions_count = upload.versions.filter(is_deleted=False).count()
+        upload.active_versions_count = upload.versions.filter(
+            is_deleted=False, status="PASS"
+        ).count()
 
     # ALWAYS add uploads to context first
     context = {"uploads": uploads, "page": page}
@@ -119,27 +137,98 @@ def model_uploader_dashboard(request):
     elif page == "detail" and pk:
         upload = get_object_or_404(ModelUpload, pk=pk, user=request.user)
         versions = upload.versions.all().order_by("-created_at")
-        context["upload"] = upload
-        context["versions"] = versions
 
-    # Add version
+        # Add version status counts
+        version_counts = {
+            "total": versions.count(),
+            "active": versions.filter(
+                is_active=True, is_deleted=False, status="PASS"
+            ).count(),
+            "available": versions.filter(is_deleted=False, status="PASS").count(),
+            "failed": versions.filter(is_deleted=False, status="FAIL").count(),
+            "deleted": versions.filter(is_deleted=True).count(),
+        }
+
+        context.update(
+            {"upload": upload, "versions": versions, "version_counts": version_counts}
+        )
+
+    # Add version (or retry failed version)
     elif page == "add_version" and pk:
         upload = get_object_or_404(ModelUpload, pk=pk, user=request.user)
+        retry_version_id = request.GET.get("retry")
+
         if request.method == "POST":
             form = VersionForm(request.POST, request.FILES)
             if form.is_valid():
-                version = form.save(commit=False)
-                version.upload = upload
-                version.save()
+                # If retrying, update the existing version
+                if retry_version_id:
+                    try:
+                        version = ModelVersion.objects.get(
+                            id=retry_version_id,
+                            upload=upload,
+                            status="FAIL",
+                            is_deleted=False,
+                        )
+                        # Update the version with new files
+                        version.model_file = form.cleaned_data["model_file"]
+                        version.predict_file = form.cleaned_data["predict_file"]
+                        version.schema_file = form.cleaned_data["schema_file"]
+                        version.status = "PENDING"
+                        version.log = ""
+                        version.save()
+                        messages.info(
+                            request, f"Retrying upload for version '{version.tag}'"
+                        )
+                    except ModelVersion.DoesNotExist:
+                        messages.error(request, "Invalid version to retry")
+                        return redirect(f"/dashboard/?page=detail&pk={upload.pk}")
+                else:
+                    # Create new version
+                    version = form.save(commit=False)
+                    version.upload = upload
+                    version.save()
+
+                # Run validation in background
                 validate_model(version)
-                messages.success(
-                    request, f"Version '{version.tag}' uploaded successfully!"
-                )
+
+                if version.status == "FAIL":
+                    return redirect("validation_failed", version_id=version.id)
+
+                if not retry_version_id:
+                    messages.success(
+                        request, f"Version '{version.tag}' uploaded successfully!"
+                    )
+
                 return redirect(f"/dashboard/?page=detail&pk={upload.pk}")
         else:
-            form = VersionForm()
-        context["form"] = form
-        context["upload"] = upload
+            initial = {}
+            if retry_version_id:
+                try:
+                    retry_version = ModelVersion.objects.get(
+                        id=retry_version_id,
+                        upload=upload,
+                        status="FAIL",
+                        is_deleted=False,
+                    )
+                    initial = {
+                        "tag": retry_version.tag,
+                        "category": retry_version.category,
+                    }
+                    context["retrying"] = True
+                except ModelVersion.DoesNotExist:
+                    messages.error(request, "Invalid version to retry")
+                    return redirect(f"/dashboard/?page=detail&pk={upload.pk}")
+
+            form = VersionForm(initial=initial)
+
+        context.update(
+            {
+                "form": form,
+                "upload": upload,
+                "retry_version_id": retry_version_id if retry_version_id else None,
+            }
+        )
 
     return render(request, "note2webapp/home.html", context)
 
@@ -185,21 +274,17 @@ def reviewer_dashboard(request):
 @login_required
 def model_versions(request, model_id):
     """View all versions of a model including deleted ones"""
-    model_upload = get_object_or_404(ModelUpload, id=model_id)
-
-    # Check permission - only owner or staff
-    if request.user != model_upload.user and not request.user.is_staff:
-        messages.error(request, "You don't have permission to view these versions.")
-        return redirect("dashboard")
-
-    # Get all versions including deleted
+    model_upload = get_object_or_404(ModelUpload, pk=model_id, user=request.user)
     versions = ModelVersion.objects.filter(upload=model_upload).order_by("-created_at")
 
-    # Calculate counts
+    # Counts for summary
     total_count = versions.count()
-    active_count = versions.filter(is_active=True, is_deleted=False).count()
-    available_count = versions.filter(is_deleted=False).count()
+    active_count = versions.filter(
+        is_active=True, is_deleted=False, status="PASS"
+    ).count()
+    available_count = versions.filter(is_deleted=False, status="PASS").count()
     deleted_count = versions.filter(is_deleted=True).count()
+    failed_count = versions.filter(is_deleted=False, status="FAIL").count()
 
     context = {
         "model_upload": model_upload,
@@ -208,8 +293,8 @@ def model_versions(request, model_id):
         "active_count": active_count,
         "available_count": available_count,
         "deleted_count": deleted_count,
+        "failed_count": failed_count,
     }
-
     return render(request, "note2webapp/model_versions.html", context)
 
 
@@ -294,44 +379,41 @@ def activate_version(request, version_id):
 
     # Check permission - only uploader (owner) can activate
     if request.user != version.upload.user and not request.user.is_staff:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse(
-                {"success": False, "error": "Permission denied"}, status=403
-            )
         messages.error(request, "You don't have permission to activate this version.")
         return redirect("dashboard")
 
-    # Check if version is deleted
+    # Don't allow activating deleted versions
     if version.is_deleted:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse(
-                {"success": False, "error": "Cannot activate deleted version"},
-                status=400,
-            )
         messages.error(request, "Cannot activate a deleted version.")
-        return redirect("dashboard")
+        return redirect("model_versions", model_id=version.upload.id)
 
-    if request.method == "POST":
-        # Deactivate all other versions of this model
-        ModelVersion.objects.filter(upload=version.upload).update(is_active=False)
+    # Don't allow activating if validation failed or is pending
+    if version.status != "PASS":
+        status_msg = (
+            "pending validation"
+            if version.status == "PENDING"
+            else "that failed validation"
+        )
+        messages.error(
+            request,
+            f"Cannot activate a version that is {status_msg}. "
+            f"Please wait for validation to complete or upload a new version.",
+        )
+        return redirect("model_versions", model_id=version.upload.id)
 
-        # Activate this version
-        version.is_active = True
-        version.save()
+    # Set all versions of this model to inactive first
+    ModelVersion.objects.filter(upload=version.upload).update(is_active=False)
 
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse(
-                {
-                    "success": True,
-                    "message": f'Version with tag "{version.tag}" is now active',
-                    "active_version_id": version.id,
-                }
-            )
+    # Activate this version
+    version.is_active = True
+    version.save()
 
-        messages.success(request, f"Version with tag '{version.tag}' is now active.")
-        return redirect(f"/model-versions/{version.upload.id}/")
+    messages.success(
+        request,
+        f"Version '{version.tag}' is now active. Other versions have been deactivated.",
+    )
 
-    return redirect("dashboard")
+    return redirect("model_versions", model_id=version.upload.id)
 
 
 @login_required

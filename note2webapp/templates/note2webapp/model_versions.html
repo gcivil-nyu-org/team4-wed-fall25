@@ -18,6 +18,7 @@
                 <table class="table table-hover">
                     <thead class="table-light">
                         <tr>
+                            <th>Version</th>
                             <th>Tag</th>
                             <th>Category</th>
                             <th>Status</th>
@@ -31,19 +32,19 @@
                         <tr class="{% if version.is_deleted %}table-secondary{% endif %}" 
                             data-version-id="{{ version.id }}">
                             <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
+                                v{{ version.get_version_number }}
+                            </td>
+                            <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
                                 <strong>{{ version.tag }}</strong>
-                                {% if version.is_active and not version.is_deleted %}
-                                <span class="badge bg-success ms-2">Active</span>
-                                {% endif %}
                             </td>
                             <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
                                 <span class="badge bg-info">{{ version.get_category_display }}</span>
                             </td>
                             <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
                                 {% if version.status == "PASS" %}
-                                <span class="badge bg-success">Pass</span>
+                                <span class="badge bg-success">Passed</span>
                                 {% elif version.status == "FAIL" %}
-                                <span class="badge bg-danger">Fail</span>
+                                <span class="badge bg-danger">Validation Failed</span>
                                 {% else %}
                                 <span class="badge bg-warning text-dark">Pending</span>
                                 {% endif %}
@@ -52,33 +53,40 @@
                                 {{ version.created_at|date:"M d, Y H:i" }}
                             </td>
                             <td>
-                                {% if version.is_deleted %}
-                                <span class="badge bg-danger">Deleted</span>
-                                <br><small class="text-muted">{{ version.deleted_at|date:"M d, Y H:i" }}</small>
+                                {% if version.status == "FAIL" %}
+                                    —
                                 {% else %}
-                                <span class="badge bg-primary">Available</span>
+                                    {% if version.is_deleted %}
+                                    <span class="badge bg-danger">Deleted</span>
+                                    {% elif version.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             <td>
                                 {% if not version.is_deleted %}
-                                    {% if version.is_active %}
-                                    <!-- Deprecate active version -->
-                                    <form method="post" action="{% url 'deprecate_version' version.id %}" 
-                                          class="d-inline deprecate-form">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-warning" title="Deprecate (deactivate) this version">
-                                            <i class="fas fa-times-circle"></i> Deprecate
-                                        </button>
-                                    </form>
-                                    {% else %}
-                                    <!-- Activate non-active version -->
-                                    <form method="post" action="{% url 'activate_version' version.id %}" 
-                                          class="d-inline activate-form">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-success" title="Make this version active">
-                                            <i class="fas fa-check-circle"></i> Activate
-                                        </button>
-                                    </form>
+                                    {% if version.status == "PASS" %}
+                                        {% if version.is_active %}
+                                        <!-- Deprecate active version -->
+                                        <form method="post" action="{% url 'deprecate_version' version.id %}" 
+                                              class="d-inline deprecate-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-warning" title="Deprecate (deactivate) this version">
+                                                <i class="fas fa-times-circle"></i> Deprecate
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <!-- Activate non-active version -->
+                                        <form method="post" action="{% url 'activate_version' version.id %}" 
+                                              class="d-inline activate-form">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-success" title="Make this version active">
+                                                <i class="fas fa-check-circle"></i> Activate
+                                            </button>
+                                        </form>
+                                        {% endif %}
                                     {% endif %}
                                     
                                     <button class="btn btn-sm btn-danger delete-version-btn" 
@@ -89,7 +97,7 @@
                                         <i class="fas fa-trash"></i> Delete
                                     </button>
                                 {% else %}
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted">No actions available</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -112,17 +120,20 @@
         <div class="card-body">
             <h5 class="card-title">Summary</h5>
             <div class="row">
-                <div class="col-md-3">
-                    <strong>Total Versions:</strong> {{ total_count }}
+                <div class="col-md-2">
+                    <strong>Total:</strong> {{ total_count }}
+                </div>
+                <div class="col-md-2">
+                    <span class="badge bg-success">Active: {{ active_count }}</span>
+                </div>
+                <div class="col-md-2">
+                    <span class="badge bg-primary">Available: {{ available_count }}</span>
                 </div>
                 <div class="col-md-3">
-                    <strong>Active:</strong> {{ active_count }}
+                    <span class="badge bg-danger">Failed: {{ failed_count }}</span>
                 </div>
-                <div class="col-md-3">
-                    <strong>Available:</strong> {{ available_count }}
-                </div>
-                <div class="col-md-3">
-                    <strong>Deleted:</strong> {{ deleted_count }}
+                <div class="col-md-2">
+                    <span class="badge bg-secondary">Deleted: {{ deleted_count }}</span>
                 </div>
             </div>
         </div>

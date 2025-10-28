@@ -77,5 +77,29 @@ class ModelVersion(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    def get_version_number(self):
+        if not self.pk:
+            existing_count = (
+                ModelVersion.objects.filter(
+                    upload=self.upload, is_deleted=False
+                ).count()
+                if self.upload_id
+                else 0
+            )
+            return existing_count + 1
+
+        return (
+            ModelVersion.objects.filter(
+                upload=self.upload, is_deleted=False, pk__lt=self.pk
+            ).count()
+            + 1
+        )
+
     def __str__(self):
-        return f"{self.upload.name} - v{self.id} ({self.status})"
+        try:
+            version_num = self.get_version_number()
+            version_str = f"v{version_num}" if version_num else "v?"
+            upload_name = getattr(self.upload, "name", "Unknown Upload")
+            return f"{upload_name} - {version_str} ({self.status})"
+        except Exception as e:
+            return f"ModelVersion (unsaved) - {self.status}"

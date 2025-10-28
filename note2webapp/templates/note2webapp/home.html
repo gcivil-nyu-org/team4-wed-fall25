@@ -28,7 +28,7 @@
             <div>
               <strong style="font-size: 16px; color: #ffffff;">{{ upload.name }}</strong><br>
               <small style="color: #adb5bd;">
-                <i class="fas fa-code-branch me-1"></i>Versions: {{ upload.active_versions_count|default:"0" }}
+                <i class="fas fa-code-branch me-1"></i>Validated Versions: {{ upload.active_versions_count|default:"0" }}
               </small>
             </div>
           </a>
@@ -213,45 +213,52 @@ function getCookie(name) {
 </div>
 
 {% elif page == "detail" %}
-<div class="smooth-card mx-auto" style="max-width: 800px;">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>{{ upload.name }}</h2>
-    <a href="{% url 'model_versions' upload.id %}" class="btn btn-info">
-      <i class="fas fa-code-branch"></i> Manage Versions
-    </a>
-  </div>
+  <div class="bg-dark text-light p-4 rounded">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">{{ upload.name }}</h2>
+      <a href="{% url 'model_versions' upload.id %}" class="btn btn-outline-info">
+        <i class="fas fa-code-branch"></i> Manage Versions
+      </a>
+    </div>
 
-  <h5>Versions</h5>
-  <ul class="list-group mb-3">
-    {% for version in versions %}
-      <li class="list-group-item bg-dark text-light {% if version.is_deleted %}opacity-75{% endif %}">
-        <span class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
-          v{{ version.id }} -
-          {% if version.status == "PASS" %}
-            <span class="badge bg-success">PASS</span>
-          {% elif version.status == "FAIL" %}
-            <span class="badge bg-danger">FAIL</span>
-          {% else %}
-            <span class="badge bg-warning text-dark">PENDING</span>
+    <div class="mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Versions</h5>
+        <a href="?page=add_version&pk={{ upload.pk }}" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-plus"></i> New Version
+        </a>
+      </div>
+      
+      <div class="bg-dark rounded border border-secondary">
+        {% for version in versions %}
+        <div class="p-3 border-bottom border-secondary {% if version.is_deleted %}opacity-50{% endif %}">
+          <div class="d-flex align-items-center">
+            <span class="me-2">v{{ version.get_version_number }}</span>
+            {% if version.status == "PASS" %}
+              <span class="badge bg-success">Passed</span>
+            {% elif version.status == "FAIL" %}
+              <span class="badge bg-danger">Failed</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Pending</span>
+            {% endif %}
+          </div>
+          {% if version.log %}
+          <div class="mt-2 p-2 bg-black rounded">
+            <pre class="mb-0 small {% if version.status == 'PASS' %}text-success{% else %}text-danger{% endif %}">
+              
+              {{ version.log }}
+            </pre>
+          </div>
           {% endif %}
-          {% if version.is_active and not version.is_deleted %}
-            <span class="badge bg-info">Active</span>
-          {% endif %}
-          {% if version.is_deleted %}
-            <span class="badge bg-danger">Deleted</span>
-          {% endif %}
-        </span><br>
-        <small>Tag: {{ version.tag }}</small><br>
-        <small>Category: {{ version.get_category_display }}</small><br>
-        <small>Log: {{ version.log|default:"No log" }}</small>
-      </li>
-    {% empty %}
-      <li class="list-group-item bg-dark text-light">No versions yet.</li>
-    {% endfor %}
-  </ul>
-
-  <div class="d-grid gap-2">
-    <a href="?page=add_version&pk={{ upload.pk }}" class="btn btn-primary">+ Add Version</a>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-4">
+          <i class="fas fa-inbox fa-2x mb-2"></i>
+          <p class="mb-0">No versions found</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 
   <div class="text-center mt-3">
@@ -290,7 +297,7 @@ function getCookie(name) {
       <button type="button" class="btn btn-success" onclick="document.getElementById('id_model_file').click();">
         + Add Model File
       </button>
-      <p id="modelFileName" class="mt-2 small text-muted">No file chosen</p>
+      <p id="modelFileName" class="mt-2 small text-white">No file chosen</p>
     </div>
 
     <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
@@ -299,7 +306,7 @@ function getCookie(name) {
       <button type="button" class="btn btn-success" onclick="document.getElementById('id_predict_file').click();">
         + Add Predict File
       </button>
-      <p id="predictFileName" class="mt-2 small text-muted">No file chosen</p>
+      <p id="predictFileName" class="mt-2 small text-white">No file chosen</p>
     </div>
 
     <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
@@ -308,7 +315,7 @@ function getCookie(name) {
       <button type="button" class="btn btn-success" onclick="document.getElementById('id_schema_file').click();">
         + Add Schema File
       </button>
-      <p id="schemaFileName" class="mt-2 small text-muted">No file chosen</p>
+      <p id="schemaFileName" class="mt-2 small text-white">No file chosen (optional)</p>
     </div>
 
     <div class="mb-3">
@@ -333,13 +340,18 @@ function getCookie(name) {
 
 <script>
 document.getElementById('id_model_file').addEventListener('change', e => {
-  document.getElementById('modelFileName').innerText = e.target.files[0]?.name || "No file chosen";
+  const fileName = e.target.files[0] ? `${e.target.files[0].name} selected` : "No file chosen";
+  document.getElementById('modelFileName').innerText = fileName;
 });
+
 document.getElementById('id_predict_file').addEventListener('change', e => {
-  document.getElementById('predictFileName').innerText = e.target.files[0]?.name || "No file chosen";
+  const fileName = e.target.files[0] ? `${e.target.files[0].name} selected` : "No file chosen";
+  document.getElementById('predictFileName').innerText = fileName;
 });
+
 document.getElementById('id_schema_file').addEventListener('change', e => {
-  document.getElementById('schemaFileName').innerText = e.target.files[0]?.name || "No file chosen";
+  const fileName = e.target.files[0] ? `${e.target.files[0].name} selected` : "No file chosen (optional)";
+  document.getElementById('schemaFileName').innerText = fileName;
 });
 </script>
 {% endif %}

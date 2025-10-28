@@ -23,6 +23,11 @@ urlpatterns = [
         views.deprecate_version,
         name="deprecate_version",
     ),
+    path(
+        "validation-failed/<int:version_id>/",
+        views.validation_failed,
+        name="validation_failed",
+    ),
     path("delete-model/<int:model_id>/", views.delete_model, name="delete_model"),
     path("reviewer/", views.reviewer_dashboard, name="reviewer_dashboard"),
 ]
