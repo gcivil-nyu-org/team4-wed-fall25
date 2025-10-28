@@ -101,5 +101,5 @@ class ModelVersion(models.Model):
             version_str = f"v{version_num}" if version_num else "v?"
             upload_name = getattr(self.upload, "name", "Unknown Upload")
             return f"{upload_name} - {version_str} ({self.status})"
-        except Exception as e:
+        except Exception:
             return f"ModelVersion (unsaved) - {self.status}"

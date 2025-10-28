@@ -6,7 +6,6 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from ..models import ModelUpload, ModelVersion
 
 # Create a temporary directory for test media files
@@ -110,7 +109,6 @@ class ModelValidationFlowTests(TestCase):
         version.save()
 
         # Try to activate the failed version
-        from django.contrib.messages import get_messages
 
         response = self.client.post(
             reverse("activate_version", args=[version.id]),
