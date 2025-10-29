@@ -19,6 +19,8 @@ install:
   - pip install black flake8 coverage coveralls
 
 before_script:
+  # Remove any existing database to ensure clean migrations
+  - rm -f db.sqlite3
   - python manage.py migrate
 
 script:
