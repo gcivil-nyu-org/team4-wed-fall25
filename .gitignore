@@ -10,7 +10,7 @@ db.sqlite3
 *.log
 
 # Migrations (optional — keep if model changes are intentional)
-note2webapp/migrations/
+# note2webapp/migrations/
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
