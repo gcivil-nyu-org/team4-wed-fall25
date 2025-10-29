@@ -1,0 +1,27 @@
+files:
+  "/opt/elasticbeanstalk/hooks/appdeploy/pre/10_pip_install.sh":
+    mode: "000755"
+    owner: root
+    group: root
+    content: |
+      #!/bin/bash
+      set -xe
+      
+      # This will run BEFORE the default pip install
+      # Clean up /tmp
+      find /tmp -type f -name "*.whl" -delete 2>/dev/null || true
+      find /tmp -type f -name "*.tar.gz" -delete 2>/dev/null || true
+      find /tmp -type d -name "pip-*" -exec rm -rf {} + 2>/dev/null || true
+      
+      # Set environment for pip
+      export TMPDIR=/var/app/pip-tmp
+      export PIP_NO_CACHE_DIR=1
+      
+      # Run pip install with explicit temp directory
+      EB_APP_STAGING_DIR=$(/opt/elasticbeanstalk/bin/get-config container -k app_staging_dir)
+      VENV=$(/opt/elasticbeanstalk/bin/get-config container -k script_dir)/venv
+      
+      if [ -f "$EB_APP_STAGING_DIR/requirements.txt" ]; then
+        echo "Installing dependencies with TMPDIR=/var/app/pip-tmp"
+        $VENV/bin/pip install --no-cache-dir -r $EB_APP_STAGING_DIR/requirements.txt
+      fi
