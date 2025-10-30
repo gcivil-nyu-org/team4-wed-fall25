@@ -1,12 +1,12 @@
 from django.contrib.auth import login, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from .forms import UploadForm, VersionForm
+from .forms import UploadForm, VersionForm, SignupForm
 from .models import ModelUpload, ModelVersion
 from .utils import validate_model
 import os
@@ -17,7 +17,7 @@ import os
 # -------------------
 def signup_view(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
+        form = SignupForm(request.POST)
         if form.is_valid():
             user = form.save()
 
@@ -28,7 +28,7 @@ def signup_view(request):
             login(request, user)
             return redirect("dashboard")
     else:
-        form = UserCreationForm()
+        form = SignupForm()
     return render(request, "note2webapp/signup.html", {"form": form})
 
 

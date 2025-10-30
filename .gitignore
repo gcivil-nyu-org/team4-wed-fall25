@@ -16,3 +16,7 @@ db.sqlite3
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+/media/models/
+/media/predict/
+/media/schemas/
