@@ -9,7 +9,9 @@ from django.utils import timezone
 from .forms import UploadForm, VersionForm
 from .models import ModelUpload, ModelVersion
 from .utils import validate_model
+from .utils import test_model_on_cpu
 import os
+import json
 
 
 # -------------------
@@ -560,3 +562,41 @@ def deprecate_version(request, version_id):
         return redirect(f"/model-versions/{version.upload.id}/")
 
     return redirect("dashboard")
+
+
+@login_required
+def test_model_cpu(request, version_id):
+    """
+    Allow uploaders and reviewers to test a specific version on CPU.
+    """
+    version = get_object_or_404(ModelVersion, id=version_id)
+    user_role = getattr(request.user.profile, "role", None)
+    if user_role not in ["uploader", "reviewer"]:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    # Load schema to prefill JSON
+    schema_json = None
+    if version.schema_file:
+        try:
+            with open(version.schema_file.path, "r") as f:
+                schema_json = json.load(f)
+        except Exception as e:
+            schema_json = {"error": str(e)}
+
+    result = None
+    if request.method == "POST":
+        try:
+            input_json = json.loads(request.POST.get("input_data", "{}"))
+            result = test_model_on_cpu(version, input_json)
+        except json.JSONDecodeError:
+            result = {"status": "error", "error": "Invalid JSON format"}
+
+    return render(
+        request,
+        "note2webapp/test_model.html",
+        {
+            "version": version,
+            "schema_json": json.dumps(schema_json, indent=2) if schema_json else None,
+            "result": result,
+        },
+    )

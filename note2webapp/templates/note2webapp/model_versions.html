@@ -88,7 +88,14 @@
                                         </form>
                                         {% endif %}
                                     {% endif %}
-                                    
+                                    {% if version.status == "PASS" %}
+                                    <a href="{% url 'test_model_cpu' version.id %}"
+                                        class="btn btn-sm btn-warning d-inline align-middle"
+                                        style="background-color: #0dcaf0; border-color: #0dcaf0; color: white;"
+                                        title="Run test on CPU">
+                                        <i class="fas fa-vial"></i> Test
+                                    </a>
+                                    {% endif %}
                                     <button class="btn btn-sm btn-danger delete-version-btn" 
                                             data-version-id="{{ version.id }}"
                                             data-version-tag="{{ version.tag }}"
