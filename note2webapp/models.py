@@ -83,10 +83,11 @@ class ModelVersion(models.Model):
         # Auto-generate version number for new versions only
         if not self.pk:  # Only for new objects
             from django.db.models import Max
+
             # Get the highest version number for this upload
-            last_version = ModelVersion.objects.filter(
-                upload=self.upload
-            ).aggregate(Max('version_number'))['version_number__max']
+            last_version = ModelVersion.objects.filter(upload=self.upload).aggregate(
+                Max("version_number")
+            )["version_number__max"]
             self.version_number = (last_version or 0) + 1
         super().save(*args, **kwargs)
 

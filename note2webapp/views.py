@@ -163,26 +163,34 @@ def model_uploader_dashboard(request):
         if request.method == "POST":
             # Validate all files are present FIRST
             missing_files = []
-            if not request.FILES.get('model_file'):
-                missing_files.append('Model file (.pt)')
-            if not request.FILES.get('predict_file'):
-                missing_files.append('Predict file (.py)')
-            if not request.FILES.get('schema_file'):
-                missing_files.append('Schema file (.json)')
+            if not request.FILES.get("model_file"):
+                missing_files.append("Model file (.pt)")
+            if not request.FILES.get("predict_file"):
+                missing_files.append("Predict file (.py)")
+            if not request.FILES.get("schema_file"):
+                missing_files.append("Schema file (.json)")
             if missing_files:
-                messages.error(request, f"Missing required files: {', '.join(missing_files)}")
+                messages.error(
+                    request, f"Missing required files: {', '.join(missing_files)}"
+                )
                 # Create form with existing POST data to preserve user input
-                form = VersionForm(initial={
-                    'tag': request.POST.get('tag', ''),
-                    'category': request.POST.get('category', 'research')
-                })
-                context.update({
-                    "form": form,
-                    "upload": upload,
-                    "retry_version_id": retry_version_id if retry_version_id else None,
-                    "page": "add_version",
-                    "pk": pk,
-                })
+                form = VersionForm(
+                    initial={
+                        "tag": request.POST.get("tag", ""),
+                        "category": request.POST.get("category", "research"),
+                    }
+                )
+                context.update(
+                    {
+                        "form": form,
+                        "upload": upload,
+                        "retry_version_id": (
+                            retry_version_id if retry_version_id else None
+                        ),
+                        "page": "add_version",
+                        "pk": pk,
+                    }
+                )
                 return render(request, "note2webapp/home.html", context)
             # Now validate the form
             form = VersionForm(request.POST, request.FILES)
@@ -390,7 +398,7 @@ def soft_delete_version(request, version_id):
                 {
                     "success": True,
                     "message": f"Version (Tag: {version.tag}) deleted successfully",
-                    "reload": True  # Add this flag
+                    "reload": True,  # Add this flag
                 }
             )
 
@@ -411,8 +419,11 @@ def activate_version(request, version_id):
     if request.user != version.upload.user and not request.user.is_staff:
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
-                {"success": False, "error": "You don't have permission to activate this version."},
-                status=403
+                {
+                    "success": False,
+                    "error": "You don't have permission to activate this version.",
+                },
+                status=403,
             )
         messages.error(request, "You don't have permission to activate this version.")
         return redirect("dashboard")
@@ -422,7 +433,7 @@ def activate_version(request, version_id):
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
                 {"success": False, "error": "Cannot activate a deleted version."},
-                status=400
+                status=400,
             )
         messages.error(request, "Cannot activate a deleted version.")
         return redirect("model_versions", model_id=version.upload.id)
@@ -436,8 +447,11 @@ def activate_version(request, version_id):
         )
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
-                {"success": False, "error": f"Cannot activate a version that is {status_msg}."},
-                status=400
+                {
+                    "success": False,
+                    "error": f"Cannot activate a version that is {status_msg}.",
+                },
+                status=400,
             )
         messages.error(
             request,
