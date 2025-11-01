@@ -87,15 +87,15 @@
                                             </button>
                                         </form>
                                         {% endif %}
+                                        
+                                        <!-- Test button with improved styling -->
+                                        <a href="{% url 'test_model_cpu' version.id %}"
+                                            class="btn btn-sm test-version-btn"
+                                            title="Run test on CPU">
+                                            <i class="fas fa-vial"></i> Test
+                                        </a>
                                     {% endif %}
-                                    {% if version.status == "PASS" %}
-                                    <a href="{% url 'test_model_cpu' version.id %}"
-                                        class="btn btn-sm btn-warning d-inline align-middle"
-                                        style="background-color: #0dcaf0; border-color: #0dcaf0; color: white;"
-                                        title="Run test on CPU">
-                                        <i class="fas fa-vial"></i> Test
-                                    </a>
-                                    {% endif %}
+                                    
                                     <button class="btn btn-sm btn-danger delete-version-btn" 
                                             data-version-id="{{ version.id }}"
                                             data-version-tag="{{ version.tag }}"
@@ -151,6 +151,34 @@
 .text-decoration-line-through {
     text-decoration: line-through;
     opacity: 0.7;
+}
+
+/* Test button styling */
+.test-version-btn {
+    background: linear-gradient(145deg, #0dcaf0, #0aa2c0);
+    border: none;
+    color: white !important;
+    font-weight: 600;
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0 2px 6px rgba(13, 202, 240, 0.3);
+    text-decoration: none;
+}
+
+.test-version-btn:hover {
+    background: linear-gradient(145deg, #31d2f2, #0dcaf0);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 202, 240, 0.4);
+    color: white !important;
+}
+
+.test-version-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(13, 202, 240, 0.3);
+}
+
+/* Ensure consistent button spacing */
+.btn-sm {
+    margin-right: 5px;
 }
 </style>
 
