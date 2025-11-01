@@ -231,23 +231,29 @@ function getCookie(name) {
       
       <div class="bg-dark rounded border border-secondary">
         {% for version in versions %}
-        <div class="p-3 border-bottom border-secondary {% if version.is_deleted %}opacity-50{% endif %}">
+        <div class="p-3 border-bottom border-secondary">
           <div class="d-flex align-items-center">
-            <span class="me-2">v{{ version.get_version_number }}</span>
-            {% if version.status == "PASS" %}
-              <span class="badge bg-success">Passed</span>
-            {% elif version.status == "FAIL" %}
-              <span class="badge bg-danger">Failed</span>
+            {% if version.is_deleted %}
+              <!-- Deleted version -->
+              <span class="me-2 text-decoration-line-through" style="font-size: 16px; color: #999;">
+                v{{ version.version_number }}
+              </span>
+              <span class="badge bg-danger">Deleted</span>
             {% else %}
-              <span class="badge bg-warning text-dark">Pending</span>
+              <!-- Active version -->
+              <span class="me-2" style="font-size: 16px;">v{{ version.version_number }}</span>
+              {% if version.status == "PASS" %}
+                <span class="badge bg-success">Passed</span>
+              {% elif version.status == "FAIL" %}
+                <span class="badge bg-danger">Failed</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Pending</span>
+              {% endif %}
             {% endif %}
           </div>
           {% if version.log %}
-          <div class="mt-2 p-2 bg-black rounded">
-            <pre class="mb-0 small {% if version.status == 'PASS' %}text-success{% else %}text-danger{% endif %}">
-              
-              {{ version.log }}
-            </pre>
+          <div class="mt-2 p-2 bg-black rounded {% if version.is_deleted %}opacity-50{% endif %}">
+            <pre class="mb-0 small {% if version.status == 'PASS' %}text-success{% elif version.is_deleted %}text-muted{% else %}text-danger{% endif %}">{{ version.log }}</pre>
           </div>
           {% endif %}
         </div>
@@ -289,10 +295,10 @@ function getCookie(name) {
     </div>
   {% endif %}
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="uploadForm">
     {% csrf_token %}
     <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-      <p>📂 Upload your <b>.pt</b> model file</p>
+      <p>📂 Upload your <b>.pt</b> model file <span class="text-danger">*</span></p>
       {{ form.model_file|add_class:"d-none"|attr:"id:id_model_file" }}
       <button type="button" class="btn btn-success" onclick="document.getElementById('id_model_file').click();">
         + Add Model File
@@ -301,7 +307,7 @@ function getCookie(name) {
     </div>
 
     <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-      <p>📂 Upload your <b>.py</b> predict file</p>
+      <p>📂 Upload your <b>.py</b> predict file <span class="text-danger">*</span></p>
       {{ form.predict_file|add_class:"d-none"|attr:"id:id_predict_file" }}
       <button type="button" class="btn btn-success" onclick="document.getElementById('id_predict_file').click();">
         + Add Predict File
@@ -310,16 +316,16 @@ function getCookie(name) {
     </div>
 
     <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-      <p>📄 Upload your <b>schema.json</b> file</p>
+      <p>📄 Upload your <b>schema.json</b> file <span class="text-danger">*</span></p>
       {{ form.schema_file|add_class:"d-none"|attr:"id:id_schema_file" }}
       <button type="button" class="btn btn-success" onclick="document.getElementById('id_schema_file').click();">
         + Add Schema File
       </button>
-      <p id="schemaFileName" class="mt-2 small text-white">No file chosen (optional)</p>
+      <p id="schemaFileName" class="mt-2 small text-white">No file chosen</p>
     </div>
 
     <div class="mb-3">
-      <label class="form-label fw-bold">Tag</label>
+      <label class="form-label fw-bold">Tag <span class="text-danger">*</span></label>
       {{ form.tag|add_class:"form-control" }}
     </div>
 
@@ -339,19 +345,79 @@ function getCookie(name) {
 </div>
 
 <script>
-document.getElementById('id_model_file').addEventListener('change', e => {
-  const fileName = e.target.files[0] ? `${e.target.files[0].name} selected` : "No file chosen";
-  document.getElementById('modelFileName').innerText = fileName;
+// File name display handlers
+document.getElementById('id_model_file').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? `✅ ${e.target.files[0].name} selected` : "No file chosen";
+    document.getElementById('modelFileName').innerText = fileName;
+    document.getElementById('modelFileName').style.color = e.target.files[0] ? '#28a745' : '#fff';
 });
 
-document.getElementById('id_predict_file').addEventListener('change', e => {
-  const fileName = e.target.files[0] ? `${e.target.files[0].name} selected` : "No file chosen";
-  document.getElementById('predictFileName').innerText = fileName;
+document.getElementById('id_predict_file').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? `✅ ${e.target.files[0].name} selected` : "No file chosen";
+    document.getElementById('predictFileName').innerText = fileName;
+    document.getElementById('predictFileName').style.color = e.target.files[0] ? '#28a745' : '#fff';
 });
 
-document.getElementById('id_schema_file').addEventListener('change', e => {
-  const fileName = e.target.files[0] ? `${e.target.files[0].name} selected` : "No file chosen (optional)";
-  document.getElementById('schemaFileName').innerText = fileName;
+document.getElementById('id_schema_file').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? `✅ ${e.target.files[0].name} selected` : "No file chosen";
+    document.getElementById('schemaFileName').innerText = fileName;
+    document.getElementById('schemaFileName').style.color = e.target.files[0] ? '#28a745' : '#fff';
+});
+
+// Form validation
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const modelFile = document.getElementById('id_model_file');
+    const predictFile = document.getElementById('id_predict_file');
+    const schemaFile = document.getElementById('id_schema_file');
+    const tagInput = document.querySelector('input[name="tag"]');
+    
+    const missing = [];
+    
+    // Check for missing files
+    if (!modelFile.files.length) {
+        missing.push('• Model file (.pt)');
+    }
+    if (!predictFile.files.length) {
+        missing.push('• Predict file (.py)');
+    }
+    if (!schemaFile.files.length) {
+        missing.push('• Schema file (.json)');
+    }
+    
+    // Check for missing tag
+    if (!tagInput.value.trim()) {
+        missing.push('• Tag');
+    }
+    
+    if (missing.length > 0) {
+        e.preventDefault();
+        alert('❌ Missing required fields:\n\n' + missing.join('\n') + '\n\nPlease fill all required fields before submitting.');
+        return false;
+    }
+    
+    // Validate file extensions
+    if (modelFile.files[0] && !modelFile.files[0].name.endsWith('.pt')) {
+        e.preventDefault();
+        alert('❌ Model file must be a .pt file');
+        return false;
+    }
+    
+    if (predictFile.files[0] && !predictFile.files[0].name.endsWith('.py')) {
+        e.preventDefault();
+        alert('❌ Predict file must be a .py file');
+        return false;
+    }
+    
+    if (schemaFile.files[0] && !schemaFile.files[0].name.endsWith('.json')) {
+        e.preventDefault();
+        alert('❌ Schema file must be a .json file');
+        return false;
+    }
+    
+    // All validations passed - show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
 });
 </script>
 {% endif %}

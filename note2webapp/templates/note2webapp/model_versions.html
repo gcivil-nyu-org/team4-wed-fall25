@@ -32,7 +32,7 @@
                         <tr class="{% if version.is_deleted %}table-secondary{% endif %}" 
                             data-version-id="{{ version.id }}">
                             <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
-                                v{{ version.get_version_number }}
+                                v{{ version.version_number }}
                             </td>
                             <td class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
                                 <strong>{{ version.tag }}</strong>
@@ -87,15 +87,15 @@
                                             </button>
                                         </form>
                                         {% endif %}
+                                        
+                                        <!-- Test button with improved styling -->
+                                        <a href="{% url 'test_model_cpu' version.id %}"
+                                            class="btn btn-sm test-version-btn"
+                                            title="Run test on CPU">
+                                            <i class="fas fa-vial"></i> Test
+                                        </a>
                                     {% endif %}
-                                    {% if version.status == "PASS" %}
-                                    <a href="{% url 'test_model_cpu' version.id %}"
-                                        class="btn btn-sm btn-warning d-inline align-middle"
-                                        style="background-color: #0dcaf0; border-color: #0dcaf0; color: white;"
-                                        title="Run test on CPU">
-                                        <i class="fas fa-vial"></i> Test
-                                    </a>
-                                    {% endif %}
+                                    
                                     <button class="btn btn-sm btn-danger delete-version-btn" 
                                             data-version-id="{{ version.id }}"
                                             data-version-tag="{{ version.tag }}"
@@ -110,7 +110,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="fas fa-inbox fa-2x mb-2"></i>
                                 <p>No versions found for this model</p>
                             </td>
@@ -122,7 +122,7 @@
         </div>
     </div>
 
-    <!-- Summary Card - Fixed for Django -->
+    <!-- Summary Card -->
     <div class="card mt-3">
         <div class="card-body">
             <h5 class="card-title">Summary</h5>
@@ -152,6 +152,34 @@
     text-decoration: line-through;
     opacity: 0.7;
 }
+
+/* Test button styling */
+.test-version-btn {
+    background: linear-gradient(145deg, #0dcaf0, #0aa2c0);
+    border: none;
+    color: white !important;
+    font-weight: 600;
+    transition: all 0.25s ease-in-out;
+    box-shadow: 0 2px 6px rgba(13, 202, 240, 0.3);
+    text-decoration: none;
+}
+
+.test-version-btn:hover {
+    background: linear-gradient(145deg, #31d2f2, #0dcaf0);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 202, 240, 0.4);
+    color: white !important;
+}
+
+.test-version-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(13, 202, 240, 0.3);
+}
+
+/* Ensure consistent button spacing */
+.btn-sm {
+    margin-right: 5px;
+}
 </style>
 
 <script>
@@ -175,35 +203,22 @@ document.querySelectorAll('.delete-version-btn').forEach(button => {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
-                    // Mark the row as deleted with strikethrough
-                    const row = document.querySelector(`tr[data-version-id="${versionId}"]`);
-                    const cells = row.querySelectorAll('td');
-                    
-                    // Add strikethrough to first 4 cells
-                    for (let i = 0; i < 4; i++) {
-                        cells[i].classList.add('text-decoration-line-through');
-                    }
-                    
-                    // Update state column
-                    cells[4].innerHTML = '<span class="badge bg-danger">Deleted</span><br><small class="text-muted">Just now</small>';
-                    
-                    // Update actions column
-                    cells[5].innerHTML = '<span class="text-muted">-</span>';
-                    
-                    // Add secondary background
-                    row.classList.add('table-secondary');
-                    
-                    alert(data.message);
+                    location.reload();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
+                console.error('Delete error:', error);
                 alert('Error deleting version. Please try again.');
-                console.error('Error:', error);
             });
         }
     });
@@ -222,18 +237,22 @@ document.querySelectorAll('.activate-form').forEach(form => {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                // Reload page to show updated active status
                 location.reload();
             } else {
-                alert('Error: ' + data.error);
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
         })
         .catch(error => {
+            console.error('Activate error:', error);
             alert('Error activating version. Please try again.');
-            console.error('Error:', error);
         });
     });
 });
@@ -252,18 +271,22 @@ document.querySelectorAll('.deprecate-form').forEach(form => {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
-                    // Reload page to show updated status
                     location.reload();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(error => {
+                console.error('Deprecate error:', error);
                 alert('Error deprecating version. Please try again.');
-                console.error('Error:', error);
             });
         }
     });
