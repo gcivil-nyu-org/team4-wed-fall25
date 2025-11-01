@@ -10,8 +10,12 @@ User = get_user_model()
 class TestModelCPUView(TestCase):
     def setUp(self):
         # Create users — profiles are auto-created by signal
-        self.uploader = User.objects.create_user(username="uploader", password="pass123")
-        self.reviewer = User.objects.create_user(username="reviewer", password="pass123")
+        self.uploader = User.objects.create_user(
+            username="uploader", password="pass123"
+        )
+        self.reviewer = User.objects.create_user(
+            username="reviewer", password="pass123"
+        )
 
         # Update their roles
         Profile.objects.filter(user=self.uploader).update(role="uploader")
