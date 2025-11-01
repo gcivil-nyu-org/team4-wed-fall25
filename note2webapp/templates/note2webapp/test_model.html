@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 text-light">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">🧪 Test Model (CPU only)</h2>
+    {% if request.user.profile.role == "uploader" %}
+      <a href="{% url 'model_versions' version.upload.id %}" class="btn btn-secondary">
+        ← Back
+      </a>
+    {% elif request.user.profile.role == "reviewer" %}
+      <a href="{% url 'reviewer_dashboard' %}?page=detail&pk={{ version.id }}" class="btn btn-secondary">
+        ← Back
+      </a>
+    {% else %}
+      <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+        ← Back
+      </a>
+    {% endif %}
+  </div>
+
+  <h5>{{ version.upload.name }} — Version: v{{ version.get_version_number }}</h5>
+  <p class="text-muted">Category: {{ version.category|title }} | Uploaded: {{ version.created_at }}</p>
+
+  <form id="testForm" method="post" class="mt-4">
+    {% csrf_token %}
+    <label for="inputData" class="form-label">Enter input JSON:</label>
+    <textarea
+      id="inputData"
+      name="input_data"
+      rows="4"
+      class="form-control bg-dark text-light"
+      placeholder='{"x1":1,"x2":2,"x3":3,"x4":4}'
+      style="font-family: monospace;"
+    ></textarea>
+    <br />
+    <button type="submit" class="btn btn-primary">Run Test</button>
+  </form>
+
+  {% if result %}
+    <div class="mt-4">
+      <h4>Result:</h4>
+      {% if result.status == "ok" %}
+        <pre class="bg-dark text-success p-3 rounded">{{ result.output|safe }}</pre>
+      {% else %}
+        <pre class="bg-dark text-danger p-3 rounded">❌ Error: {{ result.error }}</pre>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

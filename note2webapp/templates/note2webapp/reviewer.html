@@ -40,8 +40,16 @@
         <pre class="bg-dark text-light p-3 rounded">{{ version.log }}</pre>
       {% endif %}
     </div>
-
-    <div class="d-grid gap-2 mt-4">
+    <div class="d-grid gap-2 mt-2">
+      {% if version.status == "PASS" %}
+        <a href="{% url 'test_model_cpu' version.id %}" 
+          class="btn btn-primary d-block"
+          title="Run test on CPU">
+          <i class="fas fa-vial"></i> 🧪 Test on CPU
+        </a>
+      {% endif %}
+    </div>
+    <div class="d-grid gap-2 mt-2">
       <a href="?page=add_feedback&pk={{ version.pk }}" class="btn btn-primary">📝 Add Feedback</a>
       <a href="?page=list" class="btn btn-secondary">← Back</a>
     </div>

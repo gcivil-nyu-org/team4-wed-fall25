@@ -30,4 +30,5 @@ urlpatterns = [
     ),
     path("delete-model/<int:model_id>/", views.delete_model, name="delete_model"),
     path("reviewer/", views.reviewer_dashboard, name="reviewer_dashboard"),
+    path("test-model/<int:version_id>/", views.test_model_cpu, name="test_model_cpu"),
 ]
