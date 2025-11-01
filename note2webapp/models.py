@@ -73,7 +73,6 @@ class ModelVersion(models.Model):
     # Soft delete fields
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    
     # ADD THIS: Store version number permanently
     version_number = models.IntegerField(default=1)
 

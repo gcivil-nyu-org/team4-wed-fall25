@@ -167,7 +167,6 @@ def model_uploader_dashboard(request):
                 missing_files.append('Predict file (.py)')
             if not request.FILES.get('schema_file'):
                 missing_files.append('Schema file (.json)')
-            
             if missing_files:
                 messages.error(request, f"Missing required files: {', '.join(missing_files)}")
                 # Create form with existing POST data to preserve user input
@@ -183,7 +182,6 @@ def model_uploader_dashboard(request):
                     "pk": pk,
                 })
                 return render(request, "note2webapp/home.html", context)
-            
             # Now validate the form
             form = VersionForm(request.POST, request.FILES)
             if form.is_valid():

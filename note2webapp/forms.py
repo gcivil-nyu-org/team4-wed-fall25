@@ -30,7 +30,6 @@ class VersionForm(forms.ModelForm):
         self.fields['model_file'].required = False
         self.fields['predict_file'].required = False
         self.fields['schema_file'].required = False
-        
         # Add help text
         self.fields['model_file'].help_text = 'Required: Upload your .pt model file'
         self.fields['predict_file'].help_text = 'Required: Upload your .py prediction script'
@@ -41,7 +40,6 @@ class VersionForm(forms.ModelForm):
         model_file = cleaned_data.get("model_file")
         predict_file = cleaned_data.get("predict_file")
         schema_file = cleaned_data.get("schema_file")
-        
         # Backend validation - this runs after JavaScript
         if not model_file:
             raise forms.ValidationError("Model file (.pt) is required")
@@ -49,7 +47,6 @@ class VersionForm(forms.ModelForm):
             raise forms.ValidationError("Predict file (.py) is required")
         if not schema_file:
             raise forms.ValidationError("Schema file (.json) is required")
-            
         return cleaned_data
 
     def clean_model_file(self):
