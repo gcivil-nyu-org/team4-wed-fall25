@@ -1,5 +1,4 @@
 from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.shortcuts import render, redirect, get_object_or_404
@@ -12,6 +11,7 @@ from .utils import validate_model
 from .utils import test_model_on_cpu
 import os
 import json
+from django import forms
 
 
 # -------------------
@@ -19,52 +19,37 @@ import json
 # -------------------
 def signup_view(request):
     if request.method == "POST":
-        username = request.POST.get('username')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        
+        username = request.POST.get("username")
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
         # Validation
         errors = []
-        
         if not username or not password1 or not password2:
-            errors.append('All fields are required.')
-        
+            errors.append("All fields are required.")
         if password1 and password2 and password1 != password2:
-            errors.append('Passwords do not match.')
-        
+            errors.append("Passwords do not match.")
         if User.objects.filter(username=username).exists():
-            errors.append('Username already exists.')
-        
+            errors.append("Username already exists.")
         if password1 and len(password1) < 8:
-            errors.append('Password must be at least 8 characters long.')
-        
+            errors.append("Password must be at least 8 characters long.")
         if errors:
             for error in errors:
                 messages.error(request, error)
-            return render(request, 'note2webapp/login.html')
-        
+            return render(request, "note2webapp/login.html")
         try:
             # Create user
-            user = User.objects.create_user(
-                username=username,
-                password=password1
-            )
-            
+            user = User.objects.create_user(username=username, password=password1)
             # Create profile with default role as 'uploader'
-            Profile.objects.create(user=user, role='uploader')
-            
+            Profile.objects.create(user=user, role="uploader")
             # Add to ModelUploader group by default
             group, created = Group.objects.get_or_create(name="ModelUploader")
             user.groups.add(group)
-            
-            messages.success(request, 'Account created successfully! Please login.')
-            return redirect('login')
-            
+            messages.success(request, "Account created successfully! Please login.")
+            return redirect("login")
         except Exception as e:
-            messages.error(request, f'Error creating account: {str(e)}')
-            return render(request, 'note2webapp/login.html')
-    
-    return render(request, 'note2webapp/login.html')
+            messages.error(request, f"Error creating account: {str(e)}")
+            return render(request, "note2webapp/login.html")
+    return render(request, "note2webapp/login.html")
 
 
 # -------------------
@@ -72,25 +57,21 @@ def signup_view(request):
 # -------------------
 def login_view(request):
     if request.method == "POST":
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        
+        username = request.POST.get("username")
+        password = request.POST.get("password")
         user = authenticate(request, username=username, password=password)
-        
         if user is not None:
             login(request, user)
-            
             # Redirect based on user role
-            if hasattr(user, 'profile'):
-                if user.profile.role == 'reviewer':
-                    return redirect('reviewer_dashboard')
+            if hasattr(user, "profile"):
+                if user.profile.role == "reviewer":
+                    return redirect("reviewer_dashboard")
                 else:
-                    return redirect('dashboard')
-            return redirect('dashboard')
+                    return redirect("dashboard")
+            return redirect("dashboard")
         else:
-            messages.error(request, 'Invalid username or password.')
-    
-    return render(request, 'note2webapp/login.html')
+            messages.error(request, "Invalid username or password.")
+    return render(request, "note2webapp/login.html")
 
 
 # -------------------
@@ -98,7 +79,7 @@ def login_view(request):
 # -------------------
 def logout_view(request):
     logout(request)
-    messages.success(request, 'You have been logged out successfully.')
+    messages.success(request, "You have been logged out successfully.")
     return redirect("login")
 
 
@@ -709,14 +690,14 @@ def model_versions(request, model_id):
     """View for managing all versions of a specific model"""
     model_upload = get_object_or_404(ModelUpload, pk=model_id, user=request.user)
     versions = model_upload.versions.all().order_by("-created_at")
-    
     # Calculate version counts
     total_count = versions.count()
-    active_count = versions.filter(is_active=True, is_deleted=False, status="PASS").count()
+    active_count = versions.filter(
+        is_active=True, is_deleted=False, status="PASS"
+    ).count()
     available_count = versions.filter(is_deleted=False, status="PASS").count()
     failed_count = versions.filter(is_deleted=False, status="FAIL").count()
     deleted_count = versions.filter(is_deleted=True).count()
-    
     context = {
         "model_upload": model_upload,
         "versions": versions,
@@ -726,49 +707,48 @@ def model_versions(request, model_id):
         "failed_count": failed_count,
         "deleted_count": deleted_count,
     }
-    
     return render(request, "note2webapp/model_versions.html", context)
 
-
-from django import forms
 
 # Create a simple form for editing information only
 class VersionInformationForm(forms.ModelForm):
     class Meta:
         model = ModelVersion
-        fields = ['information']
+        fields = ["information"]
         widgets = {
-            'information': forms.Textarea(attrs={
-                'rows': 6,
-                'placeholder': 'Enter information about this model version...'
-            }),
+            "information": forms.Textarea(
+                attrs={
+                    "rows": 6,
+                    "placeholder": "Enter information about this model version...",
+                }
+            ),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['information'].required = True
-        self.fields['information'].label = 'Model Information'
+        self.fields["information"].required = True
+        self.fields["information"].label = "Model Information"
 
 
 @login_required
 def edit_version_information(request, version_id):
     version = get_object_or_404(ModelVersion, id=version_id)
-    
     # Check if user owns this model
     if version.upload.user != request.user:
         messages.error(request, "You don't have permission to edit this version.")
-        return redirect('dashboard')
-    
-    if request.method == 'POST':
+        return redirect("dashboard")
+    if request.method == "POST":
         form = VersionInformationForm(request.POST, instance=version)
         if form.is_valid():
             form.save()
-            messages.success(request, f"Information for version {version.tag} updated successfully!")
-            return redirect('model_versions', model_id=version.upload.id)
+            messages.success(
+                request, f"Information for version {version.tag} updated successfully!"
+            )
+            return redirect("model_versions", model_id=version.upload.id)
     else:
         form = VersionInformationForm(instance=version)
-    
-    return render(request, 'note2webapp/edit_version_information.html', {
-        'form': form,
-        'version': version
-    })
+    return render(
+        request,
+        "note2webapp/edit_version_information.html",
+        {"form": form, "version": version},
+    )

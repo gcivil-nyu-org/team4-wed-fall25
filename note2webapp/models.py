@@ -50,7 +50,6 @@ class ModelVersion(models.Model):
         upload_to="schemas/", blank=True, null=True
     )  # for test data generation
     tag = models.CharField(max_length=100)
-    
     # ADD THIS: Model information field
     information = models.TextField(blank=True, null=True)
 

@@ -16,35 +16,45 @@ class UploadForm(forms.ModelForm):
 # -------------------------
 class VersionForm(forms.ModelForm):
     information = forms.CharField(
-        widget=forms.Textarea(attrs={
-            'rows': 4,
-            'placeholder': 'Enter information about this model version...'
-        }),
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": "Enter information about this model version...",
+            }
+        ),
         required=True,  # CHANGE THIS FROM False TO True
-        label='Model Information',
-        help_text='Required: Add relevant information about this version'
+        label="Model Information",
+        help_text="Required: Add relevant information about this version",
     )
 
     class Meta:
         model = ModelVersion
-        fields = ["model_file", "predict_file", "schema_file", "tag", "category", "information"]
+        fields = [
+            "model_file",
+            "predict_file",
+            "schema_file",
+            "tag",
+            "category",
+            "information",
+        ]
         widgets = {
-            'model_file': forms.FileInput(attrs={'required': False}),
-            'predict_file': forms.FileInput(attrs={'required': False}),
-            'schema_file': forms.FileInput(attrs={'required': False}),
+            "model_file": forms.FileInput(attrs={"required": False}),
+            "predict_file": forms.FileInput(attrs={"required": False}),
+            "schema_file": forms.FileInput(attrs={"required": False}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Don't set required in __init__ - let JavaScript handle validation
-        self.fields['model_file'].required = False
-        self.fields['predict_file'].required = False
-        self.fields['schema_file'].required = False
-        
+        self.fields["model_file"].required = False
+        self.fields["predict_file"].required = False
+        self.fields["schema_file"].required = False
         # Add help text
-        self.fields['model_file'].help_text = 'Required: Upload your .pt model file'
-        self.fields['predict_file'].help_text = 'Required: Upload your .py prediction script'
-        self.fields['schema_file'].help_text = 'Required: Upload your .json schema file'
+        self.fields["model_file"].help_text = "Required: Upload your .pt model file"
+        self.fields["predict_file"].help_text = (
+            "Required: Upload your .py prediction script"
+        )
+        self.fields["schema_file"].help_text = "Required: Upload your .json schema file"
 
     def clean(self):
         cleaned_data = super().clean()
@@ -52,7 +62,6 @@ class VersionForm(forms.ModelForm):
         predict_file = cleaned_data.get("predict_file")
         schema_file = cleaned_data.get("schema_file")
         information = cleaned_data.get("information")
-        
         # Backend validation
         if not model_file:
             raise forms.ValidationError("Model file (.pt) is required")
@@ -62,7 +71,6 @@ class VersionForm(forms.ModelForm):
             raise forms.ValidationError("Schema file (.json) is required")
         if not information or not information.strip():
             raise forms.ValidationError("Model Information is required")
-            
         return cleaned_data
 
     def clean_model_file(self):
