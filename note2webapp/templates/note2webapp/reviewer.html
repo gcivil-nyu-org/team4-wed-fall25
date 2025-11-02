@@ -4,74 +4,676 @@
 {% block content %}
 
 {% if page == "list" %}
-  <div class="smooth-card mx-auto" style="max-width: 800px;">
-    <h2 class="mb-4 text-center">🧠 Uploaded Model Versions</h2>
-    <ul class="list-group">
-      {% for version in versions %}
-        <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
-          <a href="?page=detail&pk={{ version.pk }}" class="text-light text-decoration-none">
-            Model #{{ version.pk }} — {{ version.upload.name }}
-          </a>
-          <span class="badge 
-            {% if version.status == 'PASS' %} bg-success 
-            {% elif version.status == 'FAIL' %} bg-danger 
-            {% else %} bg-warning text-dark {% endif %}">
-            {{ version.status }}
-          </span>
-        </li>
-      {% empty %}
-        <li class="list-group-item bg-dark text-light text-center">No models yet.</li>
-      {% endfor %}
-    </ul>
-  </div>
+<div class="reviewer-shell">
+    <!-- Header -->
+    <div class="rv-header">
+        <h2 class="rv-title">🧠 Uploaded Model Versions</h2>
+        <p class="rv-subtitle">Review and provide feedback on active model versions</p>
+    </div>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Models List -->
+    {% for upload in uploads %}
+        <div class="rv-model-card">
+            <a href="?page=detail&pk={{ upload.pk }}" class="rv-model-link">
+                <div class="rv-model-name">{{ upload.name }}</div>
+                <div class="rv-model-arrow">→</div>
+            </a>
+        </div>
+    {% empty %}
+        <div class="empty-state">
+            <div class="empty-emoji">📭</div>
+            <div class="empty-title">No active models available</div>
+            <div class="empty-desc">There are currently no models to review</div>
+        </div>
+    {% endfor %}
+</div>
+
+<style>
+/* Main container */
+.reviewer-shell {
+    max-width: 900px;
+    background-color: #1b1d22;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 0 auto;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+    color: #fff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Header */
+.rv-header {
+    margin-bottom: 24px;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.rv-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.rv-subtitle {
+    color: #8f96a3;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Model Cards */
+.rv-model-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.rv-model-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 28px 56px rgba(0,0,0,0.9);
+    border-color: rgba(80,130,255,0.5);
+}
+
+.rv-model-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    text-decoration: none;
+    color: #fff;
+    gap: 16px;
+}
+
+.rv-model-link:hover {
+    text-decoration: none;
+    color: #fff;
+}
+
+.rv-model-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rv-model-arrow {
+    font-size: 1.2rem;
+    color: rgba(80,130,255,0.8);
+    transition: transform 0.2s ease;
+}
+
+.rv-model-card:hover .rv-model-arrow {
+    transform: translateX(4px);
+    color: rgba(80,130,255,1);
+}
+
+/* Empty state */
+.empty-state {
+    background: rgba(255,255,255,0.02);
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 12px;
+    text-align: center;
+    padding: 40px 20px;
+    margin-top: 16px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.6);
+}
+.empty-emoji {
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 12px;
+}
+.empty-title {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.empty-desc {
+    color: #8f96a3;
+    font-size: 0.85rem;
+}
+</style>
+
 
 {% elif page == "detail" %}
-  <div class="smooth-card mx-auto" style="max-width: 700px;">
-    <h3 class="text-center mb-3">{{ version.upload.name }} (v{{ version.pk }})</h3>
-
-    <div class="p-3 border rounded bg-secondary bg-opacity-25">
-      <p><strong>Status:</strong> {{ version.status }}</p>
-      <p><strong>Category:</strong> {{ version.category }}</p>
-      <p><strong>Tag:</strong> {{ version.tag }}</p>
-      <p><strong>Created:</strong> {{ version.created_at }}</p>
-      {% if version.log %}
-        <hr>
-        <h5>Validation Log:</h5>
-        <pre class="bg-dark text-light p-3 rounded">{{ version.log }}</pre>
-      {% endif %}
-    </div>
-    <div class="d-grid gap-2 mt-2">
-      {% if version.status == "PASS" %}
-        <a href="{% url 'test_model_cpu' version.id %}" 
-          class="btn btn-primary d-block"
-          title="Run test on CPU">
-          <i class="fas fa-vial"></i> 🧪 Test on CPU
+<div class="reviewer-detail-shell">
+    <!-- Top bar with back button -->
+    <div class="rvd-top-bar">
+        <a href="?page=list" class="rvd-back-btn">
+            <span>←</span>
+            <span>Back to Models</span>
         </a>
-      {% endif %}
     </div>
-    <div class="d-grid gap-2 mt-2">
-      <a href="?page=add_feedback&pk={{ version.pk }}" class="btn btn-primary">📝 Add Feedback</a>
-      <a href="?page=list" class="btn btn-secondary">← Back</a>
+
+    <!-- Header -->
+    <div class="rvd-header">
+        <h2 class="rvd-title">{{ upload.name }}</h2>
     </div>
-  </div>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Model Information Card -->
+    <div class="rvd-info-card">
+        <h5 class="rvd-section-title">Model Information</h5>
+        {% if active_version and active_version.information %}
+            <p class="rvd-info-text">{{ active_version.information }}</p>
+        {% else %}
+            <p class="rvd-info-empty">No notes provided</p>
+        {% endif %}
+    </div>
+
+    <!-- Active Version Card -->
+    <div class="rvd-version-card">
+        <h5 class="rvd-section-title">Active Version</h5>
+        
+        {% if active_version %}
+            <div class="rvd-version-header">
+                <strong class="rvd-version-number">v{{ active_version.version_number }}</strong>
+                <div class="rvd-version-badges">
+                    <span class="badge bg-info">{{ active_version.tag }}</span>
+                    {% if active_version.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if active_version.log %}
+                <div class="rvd-log-block">
+                    <pre class="rvd-log-pre {% if active_version.status == 'PASS' %}log-success{% else %}log-error{% endif %}">{{ active_version.log }}</pre>
+                </div>
+            {% endif %}
+            
+            <div class="rvd-action-buttons">
+                <a href="{% url 'test_model_cpu' active_version.id %}?return_to=reviewer&model_id={{ upload.id }}" 
+                   class="rvd-btn rvd-btn-primary">
+                    <i class="fas fa-vial"></i>
+                    <span>Test on CPU</span>
+                </a>
+                <a href="?page=add_feedback&pk={{ active_version.pk }}" class="rvd-btn rvd-btn-secondary">
+                    <i class="fas fa-comment-dots"></i>
+                    <span>Add Feedback</span>
+                </a>
+            </div>
+        {% else %}
+            <div class="rvd-no-version">
+                <p class="text-muted mb-0">No active version available</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Detail container */
+.reviewer-detail-shell {
+    max-width: 900px;
+    background-color: #1b1d22;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 0 auto;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+    color: #fff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Top bar */
+.rvd-top-bar {
+    margin-bottom: 20px;
+}
+
+.rvd-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.rvd-back-btn:hover {
+    background-color: rgba(255,255,255,0.1);
+    text-decoration: none;
+    color: #fff;
+    transform: translateX(-2px);
+}
+
+/* Header */
+.rvd-header {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.rvd-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Info Card */
+.rvd-info-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.rvd-section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding-bottom: 8px;
+}
+
+.rvd-info-text {
+    color: #fff;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-line;
+    margin: 0;
+}
+
+.rvd-info-empty {
+    color: #8f96a3;
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: 0;
+}
+
+/* Version Card */
+.rvd-version-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+    padding: 20px;
+}
+
+.rvd-version-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.rvd-version-number {
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+.rvd-version-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.rvd-log-block {
+    background-color: #000;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    box-shadow: 0 16px 32px rgba(0,0,0,0.8);
+}
+
+.rvd-log-pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.log-success {
+    color: #4ade80;
+}
+
+.log-error {
+    color: #f87171;
+}
+
+.rvd-action-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.rvd-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.rvd-btn-primary {
+    background: radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
+    box-shadow: 0 4px 12px rgba(35,76,228,0.4);
+    color: #fff;
+}
+
+.rvd-btn-primary:hover {
+    filter: brightness(1.1);
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(35,76,228,0.5);
+}
+
+.rvd-btn-secondary {
+    background: linear-gradient(145deg, #6f42c1, #5a32a3);
+    box-shadow: 0 4px 12px rgba(111,66,193,0.4);
+    color: #fff;
+}
+
+.rvd-btn-secondary:hover {
+    filter: brightness(1.1);
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(111,66,193,0.5);
+}
+
+.rvd-no-version {
+    text-align: center;
+    padding: 40px 20px;
+}
+</style>
+
 
 {% elif page == "add_feedback" %}
-  <div class="smooth-card mx-auto" style="max-width: 700px;">
-    <h3 class="text-center mb-4">📝 Add Feedback for {{ version.upload.name }}</h3>
-
-    <form method="post">
-      {% csrf_token %}
-      <textarea name="comment" class="form-control mb-3" rows="4" placeholder="Write feedback..."></textarea>
-
-      <div class="d-grid">
-        <button type="submit" class="btn btn-success">Submit Feedback</button>
-      </div>
-    </form>
-
-    <div class="text-center mt-3">
-      <a href="?page=detail&pk={{ version.pk }}" class="text-light text-decoration-none">← Back</a>
+<div class="reviewer-feedback-shell">
+    <!-- Top bar with back button -->
+    <div class="rvf-top-bar">
+        <a href="?page=detail&pk={{ version.upload.pk }}" class="rvf-back-btn">
+            <span>←</span>
+            <span>Back to Version</span>
+        </a>
     </div>
-  </div>
+
+    <!-- Header -->
+    <div class="rvf-header">
+        <h2 class="rvf-title">📝 Add Feedback</h2>
+        <p class="rvf-subtitle">{{ version.upload.name }} - v{{ version.version_number }}</p>
+    </div>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Feedback Form Card -->
+    <div class="rvf-form-card">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="rvf-field">
+                <label for="comment" class="rvf-label">
+                    Your Feedback <span class="rvf-required">*</span>
+                </label>
+                <div class="rvf-hint">
+                    Provide detailed feedback about the model's performance, quality, or any concerns.
+                </div>
+                <textarea
+                    id="comment"
+                    name="comment"
+                    class="rvf-textarea"
+                    rows="6"
+                    placeholder="Write your feedback here..."
+                    required
+                ></textarea>
+            </div>
+
+            <div class="rvf-footer">
+                <button type="submit" class="rvf-submit-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Submit Feedback</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Feedback container */
+.reviewer-feedback-shell {
+    max-width: 800px;
+    background-color: #1b1d22;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 0 auto;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+    color: #fff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Top bar */
+.rvf-top-bar {
+    margin-bottom: 20px;
+}
+
+.rvf-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.rvf-back-btn:hover {
+    background-color: rgba(255,255,255,0.1);
+    text-decoration: none;
+    color: #fff;
+    transform: translateX(-2px);
+}
+
+/* Header */
+.rvf-header {
+    margin-bottom: 24px;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.rvf-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.rvf-subtitle {
+    color: #8f96a3;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Form Card */
+.rvf-form-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+    padding: 20px;
+}
+
+.rvf-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 24px;
+}
+
+.rvf-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #fff;
+    display: block;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.rvf-required {
+    color: #ff6b6b;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.rvf-hint {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.rvf-textarea {
+    background-color: #1b1d22 !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    line-height: 1.5;
+    padding: 12px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.rvf-textarea:focus {
+    outline: 2px solid rgba(80,130,255,0.6);
+    outline-offset: 0;
+    box-shadow: 0 0 0 4px rgba(80,130,255,0.15);
+    border-color: rgba(80,130,255,0.8) !important;
+}
+
+/* Footer with submit button */
+.rvf-footer {
+    margin-top: 24px;
+}
+
+.rvf-submit-btn {
+    appearance: none;
+    border: 0;
+    border-radius: 10px;
+    width: 100%;
+    background: linear-gradient(145deg, #10b981, #059669);
+    box-shadow: 0 24px 48px rgba(16,185,129,0.4);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.3;
+    padding: 14px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.rvf-submit-btn:hover {
+    background: linear-gradient(145deg, #34d399, #10b981);
+    transform: translateY(-1px);
+    box-shadow: 0 28px 56px rgba(16,185,129,0.5);
+}
+
+.rvf-submit-btn:active {
+    transform: translateY(0);
+}
+
+.rvf-submit-btn i {
+    font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .reviewer-shell,
+    .reviewer-detail-shell,
+    .reviewer-feedback-shell {
+        padding: 16px;
+    }
+    
+    .rv-title,
+    .rvd-title,
+    .rvf-title {
+        font-size: 1.2rem;
+    }
+    
+    .rvd-action-buttons {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 {% endif %}
 
 {% endblock %}

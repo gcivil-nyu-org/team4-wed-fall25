@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Edit Information - {{ version.upload.name }}{% endblock %}
+
+{% block content %}
+<div class="edit-info-shell">
+    <!-- Top bar with back button -->
+    <div class="ei-top-bar">
+        <a href="{% url 'model_versions' version.upload.id %}" class="ei-back-btn">
+            <span>←</span>
+            <span>Back to Version Management</span>
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="ei-header">
+        <h2 class="ei-title">📝 Edit Model Information</h2>
+        <p class="ei-subtitle">Update the description and details for this model version</p>
+    </div>
+
+    <!-- Version Details Card -->
+    <div class="ei-details-card">
+        <h5 class="ei-details-title">Version Details</h5>
+        <div class="ei-details-grid">
+            <div class="ei-detail-item">
+                <span class="ei-detail-label">Model:</span>
+                <span class="ei-detail-value">{{ version.upload.name }}</span>
+            </div>
+            <div class="ei-detail-item">
+                <span class="ei-detail-label">Version:</span>
+                <span class="ei-detail-value">v{{ version.version_number }}</span>
+            </div>
+            <div class="ei-detail-item">
+                <span class="ei-detail-label">Tag:</span>
+                <span class="ei-detail-value">{{ version.tag }}</span>
+            </div>
+            <div class="ei-detail-item">
+                <span class="ei-detail-label">Created:</span>
+                <span class="ei-detail-value">{{ version.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Form Card -->
+    <div class="ei-form-card">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="ei-field">
+                <label class="ei-label">
+                    Model Information <span class="ei-required">*</span>
+                </label>
+                <div class="ei-hint">
+                    Describe your model, its purpose, improvements, and any important notes.
+                </div>
+                {{ form.information|add_class:"ei-textarea" }}
+                {% if form.information.errors %}
+                    <div class="text-danger mt-2">{{ form.information.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="ei-footer">
+                <button type="submit" class="ei-submit-btn">
+                    <i class="fas fa-save"></i>
+                    <span>Save Information</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Main container */
+.edit-info-shell {
+    max-width: 800px;
+    background-color: #1b1d22;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 0 auto;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+    color: #fff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Top bar */
+.ei-top-bar {
+    margin-bottom: 20px;
+}
+
+.ei-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.ei-back-btn:hover {
+    background-color: rgba(255,255,255,0.1);
+    text-decoration: none;
+    color: #fff;
+    transform: translateX(-2px);
+}
+
+/* Header */
+.ei-header {
+    margin-bottom: 24px;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.ei-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.ei-subtitle {
+    color: #8f96a3;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Details Card */
+.ei-details-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.ei-details-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 16px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding-bottom: 8px;
+}
+
+.ei-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.ei-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ei-detail-label {
+    font-size: 0.8rem;
+    color: #8f96a3;
+    font-weight: 500;
+}
+
+.ei-detail-value {
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Form Card */
+.ei-form-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+    padding: 20px;
+}
+
+.ei-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 24px;
+}
+
+.ei-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #fff;
+    display: block;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.ei-required {
+    color: #ff6b6b;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.ei-hint {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.ei-textarea {
+    background-color: #1b1d22 !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    line-height: 1.5;
+    padding: 12px;
+    min-height: 200px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.ei-textarea:focus {
+    outline: 2px solid rgba(80,130,255,0.6);
+    outline-offset: 0;
+    box-shadow: 0 0 0 4px rgba(80,130,255,0.15);
+    border-color: rgba(80,130,255,0.8) !important;
+}
+
+/* Footer with submit button */
+.ei-footer {
+    margin-top: 24px;
+}
+
+.ei-submit-btn {
+    appearance: none;
+    border: 0;
+    border-radius: 10px;
+    width: 100%;
+    background: radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
+    box-shadow: 0 24px 48px rgba(35,76,228,0.4);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.3;
+    padding: 14px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.ei-submit-btn:hover {
+    filter: brightness(1.07);
+    transform: translateY(-1px);
+    box-shadow: 0 28px 56px rgba(35,76,228,0.5);
+}
+
+.ei-submit-btn:active {
+    transform: translateY(0);
+}
+
+.ei-submit-btn i {
+    font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .edit-info-shell {
+        padding: 16px;
+    }
+    
+    .ei-details-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ei-title {
+        font-size: 1.2rem;
+    }
+}
+</style>
+{% endblock %}
