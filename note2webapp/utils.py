@@ -2,6 +2,7 @@ import importlib.util
 import traceback
 import json
 import os
+import torch
 
 TYPE_MAP = {"float": float, "int": int, "str": str, "bool": bool}
 
@@ -72,3 +73,37 @@ def validate_model(version):
 
     version.save()
     return version
+
+
+def test_model_on_cpu(version, input_data):
+    """
+    Run the selected version’s predict() on CPU.
+    """
+
+    try:
+        predict_path = version.predict_file.path
+        model_path = version.model_file.path
+
+        # Dynamic import
+        spec = importlib.util.spec_from_file_location("predict_module", predict_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        if not hasattr(module, "_load_model"):
+            raise Exception("predict.py missing _load_model()")
+
+        # Force the model loader to use this version’s model file
+        def patched_load_model():
+            m = module.TinyRegressor(in_features=4)
+            m.load_state_dict(torch.load(model_path, map_location="cpu"))
+            m.eval()
+            return m
+
+        module._load_model = patched_load_model
+
+        output = module.predict(input_data)
+        return {"status": "ok", "output": output}
+    except Exception as e:
+        import traceback
+
+        return {"status": "error", "error": str(e), "trace": traceback.format_exc()}

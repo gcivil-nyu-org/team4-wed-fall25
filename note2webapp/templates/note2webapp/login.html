@@ -1,35 +1,99 @@
 {% extends "auth_base.html" %}
-{% block title %}Login | Note2Web{% endblock %}
+{% block title %}{% if request.path == '/signup/' %}Sign Up{% else %}Login{% endif %} | Note2Web{% endblock %}
 
 {% block content %}
-  <ul class="nav nav-tabs">
-    <li class="nav-item">
-      <a class="nav-link active" href="{% url 'login' %}">Login</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="{% url 'signup' %}">Signup</a>
-    </li>
-  </ul>
+  <!-- Logo -->
+  <div class="auth-logo">
+    <h1>🔐 Note2Web</h1>
+    <p>{% if request.path == '/signup/' %}Create your account to get started{% else %}Welcome back! Please login to continue{% endif %}</p>
+  </div>
 
-  <h2>Login</h2>
+  <!-- Tabs -->
+  <div class="auth-tabs">
+    <a href="{% url 'login' %}" class="auth-tab {% if request.path == '/login/' %}active{% endif %}">Login</a>
+    <a href="{% url 'signup' %}" class="auth-tab {% if request.path == '/signup/' %}active{% endif %}">Sign Up</a>
+  </div>
+
+  <!-- Form -->
   <form method="post">
     {% csrf_token %}
+    
     <div class="mb-3">
-      <input type="text" name="username" class="form-control" placeholder="Username" required>
+      <label class="auth-form-label">Username</label>
+      <input 
+        type="text" 
+        name="username" 
+        class="auth-form-control" 
+        placeholder="{% if request.path == '/signup/' %}Choose a username{% else %}Enter your username{% endif %}" 
+        required
+        autocomplete="username"
+      >
     </div>
+
     <div class="mb-3">
-      <input type="password" name="password" class="form-control" placeholder="Password" required>
+      <label class="auth-form-label">Password</label>
+      <input 
+        type="password" 
+        name="{% if request.path == '/signup/' %}password1{% else %}password{% endif %}" 
+        class="auth-form-control" 
+        placeholder="{% if request.path == '/signup/' %}Create a password{% else %}Enter your password{% endif %}" 
+        required
+        autocomplete="{% if request.path == '/signup/' %}new-password{% else %}current-password{% endif %}"
+      >
     </div>
-    <button type="submit" class="btn btn-primary btn-custom">Login</button>
+
+    {% if request.path == '/signup/' %}
+    <div class="mb-3">
+      <label class="auth-form-label">Confirm Password</label>
+      <input 
+        type="password" 
+        name="password2" 
+        class="auth-form-control" 
+        placeholder="Confirm your password" 
+        required
+        autocomplete="new-password"
+      >
+    </div>
+    {% endif %}
+
+    <button type="submit" class="auth-submit-btn">
+      {% if request.path == '/signup/' %}
+        <i class="fas fa-user-plus"></i> Create Account
+      {% else %}
+        <i class="fas fa-sign-in-alt"></i> Login
+      {% endif %}
+    </button>
   </form>
 
+  <!-- Error Messages -->
   {% if form.errors %}
-    <div class="alert alert-danger mt-3">
-      Invalid username or password. Please try again.
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-circle"></i>
+      {% if request.path == '/signup/' %}
+        Please correct the errors below.
+      {% else %}
+        Invalid username or password. Please try again.
+      {% endif %}
     </div>
   {% endif %}
 
-  <div class="text-center mt-3">
-    <p class="text-muted">Don’t have an account? <a href="{% url 'signup' %}">Sign up</a></p>
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Footer -->
+  <div class="auth-footer">
+    <p>
+      {% if request.path == '/signup/' %}
+        Already have an account? <a href="{% url 'login' %}">Login here</a>
+      {% else %}
+        Don't have an account? <a href="{% url 'signup' %}">Sign up now</a>
+      {% endif %}
+    </p>
   </div>
 {% endblock %}

@@ -5,10 +5,20 @@
 {% block content %}
 
 {% if page == "list" %}
-<div class="smooth-card mx-auto" style="max-width: 700px;">
-  <h2 class="mb-4 text-center fw-bold">📂 Your Model Uploads</h2>
+<div class="model-shell">
+  <div class="model-head">
+    <div class="model-head-left">
+      <div class="model-head-icon">📂</div>
+      <div>
+        <div class="model-head-title">Your Model Uploads</div>
+        <div class="model-head-sub">Manage your registered models and their validated versions.</div>
+      </div>
+    </div>
+    <div class="model-head-right">
+      <a href="?page=create" class="new-upload-primary-btn">+ New Upload</a>
+    </div>
+  </div>
 
-  <!-- Display Messages -->
   {% if messages %}
     {% for message in messages %}
       <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -18,110 +28,234 @@
     {% endfor %}
   {% endif %}
 
-  <ul class="list-group mb-3">
-    {% for upload in uploads %}
-      <li class="list-group-item bg-dark text-light hover-item" 
-          style="transition: all 0.3s; padding: 16px 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px; border-radius: 8px;">
-        <div class="d-flex justify-content-between align-items-center w-100">
-          <a href="?page=detail&pk={{ upload.pk }}" class="text-light text-decoration-none d-flex align-items-center" style="flex: 1; min-width: 0;">
-            <i class="fas fa-folder me-3 text-primary" style="font-size: 20px;"></i>
-            <div>
-              <strong style="font-size: 16px; color: #ffffff;">{{ upload.name }}</strong><br>
-              <small style="color: #adb5bd;">
-                <i class="fas fa-code-branch me-1"></i>Versions: {{ upload.active_versions_count|default:"0" }}
-              </small>
-            </div>
-          </a>
-
-          <!-- Enhanced Delete Button -->
-          <button class="delete-model-btn"
-                  data-model-id="{{ upload.id }}"
-                  data-model-name="{{ upload.name }}"
-                  data-version-count="{{ upload.active_versions_count|default:0 }}"
-                  title="Delete this model permanently">
-            <i class="fas fa-trash-alt me-1"></i> DELETE
-          </button>
+  {% for upload in uploads %}
+    <div class="upload-row">
+      <div class="upload-main">
+        <div class="upload-name" title="{{ upload.name }}">{{ upload.name }}</div>
+        <div class="upload-meta">
+          Validated Versions: {{ upload.active_versions_count|default:"0" }}
         </div>
-      </li>
-    {% empty %}
-      <li class="list-group-item bg-dark text-light text-center" style="padding: 40px 20px;">
-        <i class="fas fa-inbox fa-3x mb-3 text-muted"></i>
-        <p class="mb-0">No uploads yet.</p>
-      </li>
-    {% endfor %}
-  </ul>
+      </div>
+      <div class="upload-actions">
+        <a href="?page=detail&pk={{ upload.pk }}" class="row-action-btn open-btn">Open</a>
 
-  <div class="d-grid">
-    <a href="?page=create" class="btn btn-primary btn-lg new-upload-btn">+ New Upload</a>
-  </div>
+        <button class="row-action-btn delete-btn delete-model-btn"
+                data-model-id="{{ upload.id }}"
+                data-model-name="{{ upload.name }}"
+                data-version-count="{{ upload.active_versions_count|default:0 }}">
+          Delete
+        </button>
+      </div>
+    </div>
+  {% empty %}
+    <div class="empty-state">
+      <div class="empty-emoji">📭</div>
+      <div class="empty-title">No uploads yet</div>
+      <div class="empty-desc">Start by creating a model container, then add a version.</div>
+      <a href="?page=create" class="new-upload-primary-btn empty-cta-btn">+ New Upload</a>
+    </div>
+  {% endfor %}
+
 </div>
 
 <style>
-/* Hovered List Item */
-.hover-item {
-  border-left: 4px solid transparent !important;
-  cursor: pointer;
-}
-.hover-item:hover {
-  background-color: #3d4349 !important;
-  border-left: 4px solid #0d6efd !important;
-  transform: translateX(5px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+/* ---------- SHARED LOOK & FEEL ---------- */
+.model-shell,
+.create-shell,
+.detail-shell,
+.version-shell {
+  max-width: 900px;
+  background-color: #1b1d22;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 0 auto;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ✨ Improved Delete Button */
-.delete-model-btn {
-  background: linear-gradient(145deg, #dc3545, #c82333);
+/* blue CTA pill */
+.new-upload-primary-btn {
+  display: inline-block;
+  background: radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
+  box-shadow: 0 20px 40px rgba(35,76,228,0.4);
   color: #fff;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
   font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  margin-left: 15px;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  line-height: 1.2;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 0;
+  white-space: nowrap;
+}
+.new-upload-primary-btn:hover {
+  filter: brightness(1.07);
+  color: #fff;
+  text-decoration: none;
+}
+
+/* neutral pill ("soft button") */
+.soft-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+  gap: 8px;
+  background-color: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
 }
-.delete-model-btn:hover {
-  background: linear-gradient(145deg, #f03e4c, #dc3545);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(220, 53, 69, 0.4);
-}
-.delete-model-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 3px 6px rgba(220, 53, 69, 0.4);
-}
-.delete-model-btn:focus {
-  outline: 2px solid #fff;
-  outline-offset: 3px;
+.soft-btn:hover {
+  background-color: rgba(255,255,255,0.1);
+  text-decoration: none;
+  color: #fff;
 }
 
-/* Blue Upload Button (consistent design) */
-.new-upload-btn {
-  background: linear-gradient(145deg, #0d6efd, #0a58ca);
-  border: none;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  transition: all 0.25s ease-in-out;
-  box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+/* header block for list screen */
+.model-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  row-gap: 12px;
+  column-gap: 16px;
+  margin-bottom: 24px;
 }
-.new-upload-btn:hover {
-  background: linear-gradient(145deg, #3085ff, #0d6efd);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(13, 110, 253, 0.4);
+.model-head-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.model-head-icon {
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+.model-head-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+}
+.model-head-sub {
+  font-size: 0.85rem;
+  color: #8f96a3;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.model-head-right {
+  flex-shrink: 0;
+}
+
+/* list rows */
+.upload-row {
+  background-color: #24272d;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.7);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 12px;
+  column-gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.upload-main { min-width: 0; }
+.upload-name {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.upload-meta {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.upload-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+.row-action-btn {
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 8px 12px;
+  min-width: 70px;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.open-btn {
+  background: rgba(80,130,255,0.12);
+  border: 1px solid rgba(80,130,255,0.5);
+  color: #fff;
+}
+.open-btn:hover {
+  background: rgba(80,130,255,0.2);
+}
+.delete-btn {
+  background: rgba(255,0,0,0.08);
+  border: 1px solid rgba(255,0,0,0.4);
+  color: #fff;
+}
+.delete-btn:hover {
+  background: rgba(255,0,0,0.14);
+}
+
+/* empty state */
+.empty-state {
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.15);
+  border-radius: 12px;
+  text-align: center;
+  padding: 40px 20px;
+  margin-top: 16px;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.6);
+}
+.empty-emoji {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.empty-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.empty-desc {
+  color: #8f96a3;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+.empty-cta-btn {
+  font-size: 0.85rem;
+  padding: 9px 12px;
 }
 </style>
 
 <script>
-// Debug
-console.log('Delete buttons found:', document.querySelectorAll('.delete-model-btn').length);
-
-// Delete model handler
 document.querySelectorAll('.delete-model-btn').forEach(button => {
   button.addEventListener('click', function(e) {
     e.preventDefault();
@@ -131,14 +265,12 @@ document.querySelectorAll('.delete-model-btn').forEach(button => {
     const modelName = this.dataset.modelName;
     const versionCount = parseInt(this.dataset.versionCount) || 0;
 
-    console.log('Delete clicked:', modelName, 'Versions:', versionCount);
-
     if (versionCount > 0) {
       alert('❌ Cannot delete model with ' + versionCount + ' active versions. Please delete all versions first.');
       return;
     }
 
-    if (confirm(`⚠️ Are you sure you want to permanently delete the model "${modelName}"?\n\nThis action cannot be undone.`)) {
+    if (confirm(`⚠️ Permanently delete "${modelName}"?\nThis cannot be undone.`)) {
       fetch(`/delete-model/${modelId}/`, {
         method: 'POST',
         headers: {
@@ -163,7 +295,6 @@ document.querySelectorAll('.delete-model-btn').forEach(button => {
   });
 });
 
-// Helper to get CSRF token
 function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
@@ -181,8 +312,13 @@ function getCookie(name) {
 </script>
 
 {% elif page == "create" %}
-<div class="smooth-card mx-auto" style="max-width: 600px;">
-  <h2 class="mb-4 text-center">🆕 Create New Upload</h2>
+<div class="create-shell">
+
+  <!-- header -->
+  <div class="create-head">
+    <div class="create-head-title">Create New Upload</div>
+    <div class="create-head-sub">Give your model container a name.</div>
+  </div>
 
   {% if messages %}
     {% for message in messages %}
@@ -193,75 +329,433 @@ function getCookie(name) {
     {% endfor %}
   {% endif %}
 
-  <form method="post">
+  <form method="post" class="create-form">
     {% csrf_token %}
     <div class="mb-3">
-      <label class="form-label">Upload Name</label>
-      {{ form.name|add_class:"form-control" }}
+      <label class="form-label create-label">Upload Name</label>
+      {{ form.name|add_class:"form-control create-input" }}
       {% if form.name.errors %}
         <div class="text-danger mt-1">{{ form.name.errors }}</div>
       {% endif %}
     </div>
-    <div class="d-grid mt-3">
-      <button type="submit" class="btn btn-primary">Create</button>
+
+    <div class="create-actions">
+      <a href="?page=list" class="create-back-btn">
+        <span>←</span>
+        <span>Back</span>
+      </a>
+      <button type="submit" class="create-submit-btn">
+        Create
+      </button>
     </div>
   </form>
-
-  <div class="text-center mt-3">
-    <a href="?page=list">← Back</a>
-  </div>
 </div>
 
+<style>
+.create-shell {
+  max-width: 900px;
+  background-color: #1b1d22;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 0 auto;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+  color: #fff;
+  font-family: system-ui,-apple-system,BlinkMacSystemFont,"Inter",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+
+.create-head {
+  margin-bottom:20px;
+}
+.create-head-title {
+  font-size:1.2rem;
+  font-weight:600;
+  color:#fff;
+  line-height:1.4;
+  margin-bottom: 4px;
+}
+.create-head-sub {
+  font-size:0.9rem;
+  line-height:1.4;
+  color:#8f96a3;
+}
+
+.create-label {
+  font-weight:500;
+  font-size:0.9rem;
+  color:#fff;
+  margin-bottom:6px;
+}
+.create-input {
+  background-color:#1b1d22 !important;
+  color:#fff !important;
+  border:1px solid rgba(255,255,255,0.18) !important;
+  font-size:0.9rem;
+  border-radius:8px;
+  line-height:1.4;
+  padding:10px 12px;
+}
+.create-input:focus {
+  outline:2px solid rgba(80,130,255,0.6);
+  outline-offset:0;
+  box-shadow:0 0 0 4px rgba(80,130,255,0.15);
+  border-color:rgba(80,130,255,0.8) !important;
+}
+
+.create-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-top:24px;
+}
+
+/* Back button - gray */
+.create-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.create-back-btn:hover {
+  background-color: rgba(255,255,255,0.1);
+  text-decoration: none;
+  color: #fff;
+}
+
+/* Create button - blue */
+.create-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  background: radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
+  box-shadow: 0 4px 12px rgba(35,76,228,0.4);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.create-submit-btn:hover {
+  filter: brightness(1.1);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(35,76,228,0.5);
+}
+</style>
+
+
 {% elif page == "detail" %}
-<div class="smooth-card mx-auto" style="max-width: 800px;">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>{{ upload.name }}</h2>
-    <a href="{% url 'model_versions' upload.id %}" class="btn btn-info">
-      <i class="fas fa-code-branch"></i> Manage Versions
+<div class="detail-shell">
+
+  <!-- Top bar with back button -->
+  <div class="detail-top-bar">
+    <a href="?page=list" class="detail-back-btn">
+      <span>←</span>
+      <span>Back to Models</span>
     </a>
   </div>
 
-  <h5>Versions</h5>
-  <ul class="list-group mb-3">
-    {% for version in versions %}
-      <li class="list-group-item bg-dark text-light {% if version.is_deleted %}opacity-75{% endif %}">
-        <span class="{% if version.is_deleted %}text-decoration-line-through{% endif %}">
-          v{{ version.id }} -
-          {% if version.status == "PASS" %}
-            <span class="badge bg-success">PASS</span>
-          {% elif version.status == "FAIL" %}
-            <span class="badge bg-danger">FAIL</span>
-          {% else %}
-            <span class="badge bg-warning text-dark">PENDING</span>
-          {% endif %}
-          {% if version.is_active and not version.is_deleted %}
-            <span class="badge bg-info">Active</span>
-          {% endif %}
-          {% if version.is_deleted %}
-            <span class="badge bg-danger">Deleted</span>
-          {% endif %}
-        </span><br>
-        <small>Tag: {{ version.tag }}</small><br>
-        <small>Category: {{ version.get_category_display }}</small><br>
-        <small>Log: {{ version.log|default:"No log" }}</small>
-      </li>
-    {% empty %}
-      <li class="list-group-item bg-dark text-light">No versions yet.</li>
-    {% endfor %}
-  </ul>
+  <div class="detail-header">
+    <div class="detail-title-section">
+      <div class="detail-model-name">{{ upload.name }}</div>
+      <div class="detail-model-meta">
+        {{ versions|length }} version{% if versions|length != 1 %}s{% endif %} total
+      </div>
+    </div>
 
-  <div class="d-grid gap-2">
-    <a href="?page=add_version&pk={{ upload.pk }}" class="btn btn-primary">+ Add Version</a>
+    <div class="detail-action-buttons">
+      <a href="{% url 'model_versions' upload.id %}" class="detail-manage-btn">
+        <span>⚙️</span>
+        <span>Manage Versions</span>
+      </a>
+      <a href="?page=add_version&pk={{ upload.pk }}" class="detail-new-version-btn">
+        + New Version
+      </a>
+    </div>
   </div>
 
-  <div class="text-center mt-3">
-    <a href="?page=list">← Back</a>
+  <!-- versions list card -->
+  <div class="versions-card">
+    <div class="versions-card-head">Versions</div>
+    <hr class="versions-divider">
+
+    {% for version in versions %}
+      <!-- FIXED: Version header with badges on the right in same line -->
+      <div class="version-row-header">
+        <strong class="version-number {% if version.is_deleted %}version-deleted{% endif %}">
+          v{{ version.version_number }}
+        </strong>
+
+        <div class="version-badges">
+          <span class="badge bg-info">{{ version.tag }}</span>
+
+          {% if version.is_deleted %}
+            <span class="badge bg-danger">Deleted</span>
+          {% elif version.status == "PASS" %}
+            <span class="badge bg-success">Passed</span>
+            {% if version.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          {% elif version.status == "FAIL" %}
+            <span class="badge bg-danger">Failed</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if version.log %}
+        <div class="version-log-block {% if version.is_deleted %}opacity-50{% endif %}">
+          <pre class="version-log-pre {% if version.status == 'PASS' %}log-success{% elif version.is_deleted %}log-deleted{% else %}log-error{% endif %}">{{ version.log }}</pre>
+        </div>
+      {% endif %}
+
+      <hr class="versions-row-sep">
+    {% empty %}
+      <div class="text-center text-muted py-4">
+        <i class="fas fa-inbox fa-2x mb-2"></i>
+        <p class="mb-0">No versions found</p>
+      </div>
+    {% endfor %}
   </div>
 </div>
 
+<style>
+.detail-shell {
+  max-width: 1100px;
+  background-color:#1b1d22;
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px;
+  margin:0 auto;
+  box-shadow:0 32px 64px rgba(0,0,0,0.8);
+  color:#fff;
+  padding:24px;
+  font-family: system-ui,-apple-system,BlinkMacSystemFont,"Inter",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+
+/* Top bar */
+.detail-top-bar {
+  margin-bottom: 20px;
+}
+
+/* PROPER BUTTON STYLES */
+.detail-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.detail-back-btn:hover {
+  background-color: rgba(255,255,255,0.1);
+  text-decoration: none;
+  color: #fff;
+  transform: translateX(-2px);
+}
+
+/* Header section */
+.detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.detail-title-section {
+  flex: 1;
+  min-width: 200px;
+}
+
+.detail-model-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.detail-model-meta {
+  color: #8f96a3;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.detail-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Manage Versions button - gray */
+.detail-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.detail-manage-btn:hover {
+  background-color: rgba(255,255,255,0.1);
+  text-decoration: none;
+  color: #fff;
+}
+
+/* New Version button - blue primary */
+.detail-new-version-btn {
+  display: inline-flex;
+  align-items: center;
+  background: radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
+  box-shadow: 0 4px 12px rgba(35,76,228,0.4);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 18px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.detail-new-version-btn:hover {
+  filter: brightness(1.1);
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(35,76,228,0.5);
+}
+
+/* versions card */
+.versions-card {
+  background-color:#24272d;
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;
+  box-shadow:0 24px 48px rgba(0,0,0,0.7);
+  padding:20px;
+}
+.versions-card-head {
+  font-size:0.9rem;
+  font-weight:600;
+  color:#fff;
+  margin-bottom:8px;
+}
+.versions-divider {
+  border:0;
+  border-top:1px solid rgba(255,255,255,0.07);
+  margin:0 0 16px 0;
+}
+
+/* FIXED: Version row header - single line with badges on right */
+.version-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.version-number {
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.version-deleted {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.version-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.version-log-block {
+  background-color:#000;
+  border-radius:8px;
+  padding:12px 16px;
+  margin-bottom:16px;
+  overflow-x:auto;
+  box-shadow:0 16px 32px rgba(0,0,0,0.8);
+}
+.version-log-pre {
+  white-space:pre-wrap;
+  word-break:break-word;
+  font-size:0.9rem;
+  line-height:1.5;
+  margin:0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Log color classes */
+.log-success {
+  color: #4ade80;
+}
+.log-deleted {
+  color: #6b7280;
+}
+.log-error {
+  color: #f87171;
+}
+
+.versions-row-sep {
+  border:0;
+  border-top:1px solid rgba(255,255,255,0.07);
+  margin:0 0 16px 0;
+}
+</style>
+
+
 {% elif page == "add_version" %}
-<div class="card shadow-lg p-4 bg-dark text-light" style="max-width: 700px; margin: 0 auto; border-radius: 15px;">
-  <h3 class="mb-4 text-center fw-bold">🚀 Upload Model Version</h3>
+<div class="version-shell text-light mx-auto">
+
+  <!-- Top bar for back button -->
+  <div class="vs-top-bar">
+    <a href="?page=detail&pk={{ upload.pk }}" class="vs-back-btn">
+      <span>←</span>
+      <span>Back</span>
+    </a>
+  </div>
+
+  <div class="vs-header">
+    <div class="vs-title">Upload Model Version</div>
+    <div class="vs-subtitle">Attach model artifacts and describe this version before validation.</div>
+  </div>
 
   {% if messages %}
     {% for message in messages %}
@@ -274,7 +768,7 @@ function getCookie(name) {
 
   {% if form.errors %}
     <div class="alert alert-danger">
-      <ul>
+      <ul class="mb-0">
         {% for field, errors in form.errors.items %}
           <li><strong>{{ field|capfirst }}:</strong> {{ errors|join:", " }}</li>
         {% endfor %}
@@ -282,64 +776,417 @@ function getCookie(name) {
     </div>
   {% endif %}
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="uploadForm" class="vs-form">
     {% csrf_token %}
-    <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-      <p>📂 Upload your <b>.pt</b> model file</p>
-      {{ form.model_file|add_class:"d-none"|attr:"id:id_model_file" }}
-      <button type="button" class="btn btn-success" onclick="document.getElementById('id_model_file').click();">
-        + Add Model File
+
+    <!-- Files -->
+    <section class="vs-card">
+      <div class="vs-section-title">Model Files</div>
+      <div class="vs-grid">
+
+        <div class="vs-field">
+          <label class="vs-label">
+            Model (.pt file) <span class="vs-required">*</span>
+          </label>
+          <div class="vs-file-box">
+            <div class="vs-file-desc">
+              <div class="vs-file-heading">Primary model weights</div>
+              <div class="vs-file-hint">PyTorch checkpoint / state_dict</div>
+            </div>
+            {{ form.model_file|add_class:"d-none"|attr:"id:id_model_file" }}
+            <button type="button" class="vs-file-btn" onclick="document.getElementById('id_model_file').click();">
+              + Add .pt
+            </button>
+          </div>
+          <div id="modelFileName" class="vs-file-name">No file chosen</div>
+        </div>
+
+        <div class="vs-field">
+          <label class="vs-label">
+            Inference Script (.py) <span class="vs-required">*</span>
+          </label>
+          <div class="vs-file-box">
+            <div class="vs-file-desc">
+              <div class="vs-file-heading">Prediction entry point</div>
+              <div class="vs-file-hint">Should expose a callable for inference</div>
+            </div>
+            {{ form.predict_file|add_class:"d-none"|attr:"id:id_predict_file" }}
+            <button type="button" class="vs-file-btn" onclick="document.getElementById('id_predict_file').click();">
+              + Add .py
+            </button>
+          </div>
+          <div id="predictFileName" class="vs-file-name">No file chosen</div>
+        </div>
+
+        <div class="vs-field">
+          <label class="vs-label">
+            Schema (schema.json) <span class="vs-required">*</span>
+          </label>
+          <div class="vs-file-box">
+            <div class="vs-file-desc">
+              <div class="vs-file-heading">Input / output contract</div>
+              <div class="vs-file-hint">JSON describing request & response fields</div>
+            </div>
+            {{ form.schema_file|add_class:"d-none"|attr:"id:id_schema_file" }}
+            <button type="button" class="vs-file-btn" onclick="document.getElementById('id_schema_file').click();">
+              + Add .json
+            </button>
+          </div>
+          <div id="schemaFileName" class="vs-file-name">No file chosen</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Metadata -->
+    <section class="vs-card">
+      <div class="vs-section-title">Version Details</div>
+
+      <!-- FIXED: Added proper spacing with grid layout -->
+      <div class="vs-metadata-grid">
+        <div class="vs-field-full">
+          <label class="vs-label">
+            Model Information <span class="vs-required">*</span>
+          </label>
+          <div class="vs-hint">
+            Summarize what this version does, what's changed, and any warnings.
+          </div>
+          {{ form.information|add_class:"form-control vs-textarea"|attr:"rows:4" }}
+        </div>
+
+        <div class="vs-field-half">
+          <label class="vs-label">
+            Tag <span class="vs-required">*</span>
+          </label>
+          {{ form.tag|add_class:"form-control vs-input" }}
+          <div class="vs-hint-inline">Example: v2-beta, prod, hotfix-3</div>
+        </div>
+
+        <div class="vs-field-half">
+          <label class="vs-label">
+            Category
+          </label>
+          {{ form.category|add_class:"form-select vs-input" }}
+          <div class="vs-hint-inline">Used for grouping internally</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="vs-footer">
+      <button type="submit" class="vs-submit-btn">
+        <span class="vs-submit-label">Upload &amp; Validate</span>
       </button>
-      <p id="modelFileName" class="mt-2 small text-muted">No file chosen</p>
-    </div>
-
-    <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-      <p>📂 Upload your <b>.py</b> predict file</p>
-      {{ form.predict_file|add_class:"d-none"|attr:"id:id_predict_file" }}
-      <button type="button" class="btn btn-success" onclick="document.getElementById('id_predict_file').click();">
-        + Add Predict File
-      </button>
-      <p id="predictFileName" class="mt-2 small text-muted">No file chosen</p>
-    </div>
-
-    <div class="mb-4 text-center border rounded p-4 bg-secondary bg-opacity-25">
-      <p>📄 Upload your <b>schema.json</b> file</p>
-      {{ form.schema_file|add_class:"d-none"|attr:"id:id_schema_file" }}
-      <button type="button" class="btn btn-success" onclick="document.getElementById('id_schema_file').click();">
-        + Add Schema File
-      </button>
-      <p id="schemaFileName" class="mt-2 small text-muted">No file chosen</p>
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label fw-bold">Tag</label>
-      {{ form.tag|add_class:"form-control" }}
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label fw-bold">Category</label>
-      {{ form.category|add_class:"form-select" }}
-    </div>
-
-    <div class="d-grid mt-4">
-      <button type="submit" class="btn btn-primary btn-lg">Upload & Validate</button>
     </div>
   </form>
-
-  <div class="text-center mt-3">
-    <a href="?page=detail&pk={{ upload.pk }}">← Back</a>
-  </div>
 </div>
 
+<style>
+.version-shell {
+  max-width: 900px;
+  background-color: #1b1d22;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 24px 24px 32px;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+  font-family: system-ui,-apple-system,BlinkMacSystemFont,"Inter",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:#fff;
+}
+
+/* Top bar for back button */
+.vs-top-bar {
+  margin-bottom: 20px;
+}
+
+/* Back button - gray */
+.vs-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.vs-back-btn:hover {
+  background-color: rgba(255,255,255,0.1);
+  text-decoration: none;
+  color: #fff;
+}
+
+/* header for add_version */
+.vs-header {
+  margin-bottom:24px;
+}
+.vs-title {
+  color:#fff;
+  font-size:1.2rem;
+  font-weight:600;
+  line-height:1.4;
+  margin-bottom: 4px;
+}
+.vs-subtitle {
+  color:#8f96a3;
+  font-size:0.9rem;
+  line-height:1.4;
+}
+
+/* cards */
+.vs-card {
+  background-color:#24272d;
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:24px;
+  box-shadow:0 24px 48px rgba(0,0,0,0.7);
+}
+.vs-section-title {
+  color:#fff;
+  font-size:0.9rem;
+  font-weight:600;
+  margin-bottom:16px;
+  letter-spacing:0.02em;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  padding-bottom:8px;
+}
+
+/* responsive grid for file pickers */
+.vs-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));
+  gap:20px;
+}
+
+/* FIXED: Metadata grid with proper spacing */
+.vs-metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+/* field blocks */
+.vs-field-full {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.vs-field-half {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.vs-field {
+  display:flex;
+  flex-direction:column;
+  color:#fff;
+  margin-bottom: 8px;
+}
+
+.vs-label {
+  font-size:0.85rem;
+  font-weight:500;
+  color:#fff;
+  display:block;
+  margin-bottom:6px;
+  line-height:1.3;
+}
+.vs-required {
+  color:#ff6b6b;
+  font-weight:600;
+  margin-left:4px;
+}
+.vs-hint,
+.vs-hint-inline {
+  font-size:0.8rem;
+  line-height:1.4;
+  color:#9ca3af;
+}
+.vs-hint { margin-bottom:8px; }
+.vs-hint-inline { margin-top:6px; }
+
+/* upload file picker rows */
+.vs-file-box {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  background-color:#2d3036;
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:10px;
+  padding:16px;
+  gap:16px;
+}
+.vs-file-desc { flex:1; min-width:0; }
+.vs-file-heading {
+  color:#fff;
+  font-size:0.9rem;
+  font-weight:500;
+  line-height:1.4;
+}
+.vs-file-hint {
+  font-size:0.8rem;
+  line-height:1.4;
+  color:#9ca3af;
+  margin-top:2px;
+}
+.vs-file-btn {
+  white-space:nowrap;
+  border:1px solid rgba(255,255,255,0.3);
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+  font-size:0.8rem;
+  font-weight:500;
+  padding:8px 12px;
+  line-height:1.2;
+  border-radius:8px;
+  min-width:80px;
+  cursor:pointer;
+  transition: all 0.2s ease;
+}
+.vs-file-btn:hover {
+  background:rgba(255,255,255,0.15);
+  border-color:rgba(255,255,255,0.4);
+}
+.vs-file-name {
+  font-size:0.8rem;
+  line-height:1.4;
+  color:#9ca3af;
+  margin-top:6px;
+  word-break:break-all;
+  min-height:1.4em;
+}
+
+/* inputs / textarea dark theme */
+.vs-input,
+.vs-textarea {
+  background-color:#1b1d22 !important;
+  color:#fff !important;
+  border:1px solid rgba(255,255,255,0.18) !important;
+  font-size:0.9rem;
+  border-radius:8px;
+  line-height:1.4;
+  padding:10px 12px;
+}
+.vs-input:focus,
+.vs-textarea:focus {
+  outline:2px solid rgba(80,130,255,0.6);
+  outline-offset:0;
+  box-shadow:0 0 0 4px rgba(80,130,255,0.15);
+  border-color:rgba(80,130,255,0.8) !important;
+}
+
+/* submit footer */
+.vs-footer { margin-top:24px; }
+.vs-submit-btn {
+  appearance:none;
+  border:0;
+  border-radius:10px;
+  width:100%;
+  background:radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
+  box-shadow:0 24px 48px rgba(35,76,228,0.4);
+  color:#fff;
+  font-weight:600;
+  font-size:1rem;
+  line-height:1.3;
+  padding:14px 16px;
+  text-align:center;
+  cursor:pointer;
+  transition: all 0.2s ease;
+}
+.vs-submit-btn:disabled {
+  opacity:.6;
+  cursor:wait;
+}
+.vs-submit-btn:hover:not(:disabled){
+  filter:brightness(1.07);
+  transform: translateY(-1px);
+}
+.vs-submit-label {
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .vs-metadata-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .vs-field-half {
+    grid-column: 1 / -1;
+  }
+}
+</style>
+
 <script>
-document.getElementById('id_model_file').addEventListener('change', e => {
-  document.getElementById('modelFileName').innerText = e.target.files[0]?.name || "No file chosen";
+// file name display on change
+document.getElementById('id_model_file').addEventListener('change', function(e) {
+  const fileName = e.target.files[0] ? `✔ ${e.target.files[0].name}` : "No file chosen";
+  document.getElementById('modelFileName').innerText = fileName;
 });
-document.getElementById('id_predict_file').addEventListener('change', e => {
-  document.getElementById('predictFileName').innerText = e.target.files[0]?.name || "No file chosen";
+document.getElementById('id_predict_file').addEventListener('change', function(e) {
+  const fileName = e.target.files[0] ? `✔ ${e.target.files[0].name}` : "No file chosen";
+  document.getElementById('predictFileName').innerText = fileName;
 });
-document.getElementById('id_schema_file').addEventListener('change', e => {
-  document.getElementById('schemaFileName').innerText = e.target.files[0]?.name || "No file chosen";
+document.getElementById('id_schema_file').addEventListener('change', function(e) {
+  const fileName = e.target.files[0] ? `✔ ${e.target.files[0].name}` : "No file chosen";
+  document.getElementById('schemaFileName').innerText = fileName;
+});
+
+// validation before submit
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+  const modelFile = document.getElementById('id_model_file');
+  const predictFile = document.getElementById('id_predict_file');
+  const schemaFile = document.getElementById('id_schema_file');
+  const tagInput = document.querySelector('input[name="tag"]');
+  const infoInput = document.querySelector('textarea[name="information"]');
+
+  const missing = [];
+  if (!modelFile.files.length) missing.push('• Model file (.pt)');
+  if (!predictFile.files.length) missing.push('• Predict file (.py)');
+  if (!schemaFile.files.length) missing.push('• Schema file (.json)');
+  if (!tagInput.value.trim()) missing.push('• Tag');
+  if (!infoInput.value.trim()) missing.push('• Model Information');
+
+  if (missing.length > 0) {
+    e.preventDefault();
+    alert(
+      'Missing required fields:\n\n' +
+      missing.join('\n') +
+      '\n\nPlease fill all required fields before submitting.'
+    );
+    return false;
+  }
+
+  if (modelFile.files[0] && !modelFile.files[0].name.endsWith('.pt')) {
+    e.preventDefault();
+    alert('Model file must be a .pt file');
+    return false;
+  }
+  if (predictFile.files[0] && !predictFile.files[0].name.endsWith('.py')) {
+    e.preventDefault();
+    alert('Predict file must be a .py file');
+    return false;
+  }
+  if (schemaFile.files[0] && !schemaFile.files[0].name.endsWith('.json')) {
+    e.preventDefault();
+    alert('Schema file must be a .json file');
+    return false;
+  }
+
+  const submitBtn = this.querySelector('.vs-submit-btn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML =
+    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' +
+    '<span> Uploading… </span>';
 });
 </script>
 {% endif %}

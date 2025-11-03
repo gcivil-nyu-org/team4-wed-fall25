@@ -50,6 +50,8 @@ class ModelVersion(models.Model):
         upload_to="schemas/", blank=True, null=True
     )  # for test data generation
     tag = models.CharField(max_length=100)
+    # ADD THIS: Model information field
+    information = models.TextField(blank=True, null=True)
 
     category = models.CharField(
         max_length=50,
@@ -70,12 +72,35 @@ class ModelVersion(models.Model):
     log = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # ADD THESE NEW FIELDS FOR SOFT DELETE
+    # Soft delete fields
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    # Store version number permanently
+    version_number = models.IntegerField(default=1)
 
     class Meta:
         ordering = ["-created_at"]
 
+    def save(self, *args, **kwargs):
+        # Auto-generate version number for new versions only
+        if not self.pk:  # Only for new objects
+            from django.db.models import Max
+
+            # Get the highest version number for this upload
+            last_version = ModelVersion.objects.filter(upload=self.upload).aggregate(
+                Max("version_number")
+            )["version_number__max"]
+            self.version_number = (last_version or 0) + 1
+        super().save(*args, **kwargs)
+
+    def get_version_number(self):
+        """Keep this method for backwards compatibility"""
+        return self.version_number
+
     def __str__(self):
-        return f"{self.upload.name} - v{self.id} ({self.status})"
+        try:
+            version_str = f"v{self.version_number}"
+            upload_name = getattr(self.upload, "name", "Unknown Upload")
+            return f"{upload_name} - {version_str} ({self.status})"
+        except Exception:
+            return f"ModelVersion (unsaved) - {self.status}"
