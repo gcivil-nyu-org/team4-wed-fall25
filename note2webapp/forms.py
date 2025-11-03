@@ -15,9 +15,28 @@ class UploadForm(forms.ModelForm):
 # Version Form (for new version)
 # -------------------------
 class VersionForm(forms.ModelForm):
+    information = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "placeholder": "Enter information about this model version...",
+            }
+        ),
+        required=True,  # CHANGE THIS FROM False TO True
+        label="Model Information",
+        help_text="Required: Add relevant information about this version",
+    )
+
     class Meta:
         model = ModelVersion
-        fields = ["model_file", "predict_file", "schema_file", "tag", "category"]
+        fields = [
+            "model_file",
+            "predict_file",
+            "schema_file",
+            "tag",
+            "category",
+            "information",
+        ]
         widgets = {
             "model_file": forms.FileInput(attrs={"required": False}),
             "predict_file": forms.FileInput(attrs={"required": False}),
@@ -42,13 +61,16 @@ class VersionForm(forms.ModelForm):
         model_file = cleaned_data.get("model_file")
         predict_file = cleaned_data.get("predict_file")
         schema_file = cleaned_data.get("schema_file")
-        # Backend validation - this runs after JavaScript
+        information = cleaned_data.get("information")
+        # Backend validation
         if not model_file:
             raise forms.ValidationError("Model file (.pt) is required")
         if not predict_file:
             raise forms.ValidationError("Predict file (.py) is required")
         if not schema_file:
             raise forms.ValidationError("Schema file (.json) is required")
+        if not information or not information.strip():
+            raise forms.ValidationError("Model Information is required")
         return cleaned_data
 
     def clean_model_file(self):

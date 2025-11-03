@@ -50,6 +50,8 @@ class ModelVersion(models.Model):
         upload_to="schemas/", blank=True, null=True
     )  # for test data generation
     tag = models.CharField(max_length=100)
+    # ADD THIS: Model information field
+    information = models.TextField(blank=True, null=True)
 
     category = models.CharField(
         max_length=50,
@@ -73,7 +75,7 @@ class ModelVersion(models.Model):
     # Soft delete fields
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    # ADD THIS: Store version number permanently
+    # Store version number permanently
     version_number = models.IntegerField(default=1)
 
     class Meta:

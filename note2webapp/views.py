@@ -1,17 +1,17 @@
-from django.contrib.auth import login, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from .forms import UploadForm, VersionForm
-from .models import ModelUpload, ModelVersion
+from .models import ModelUpload, ModelVersion, Profile
 from .utils import validate_model
 from .utils import test_model_on_cpu
 import os
 import json
+from django import forms
 
 
 # -------------------
@@ -19,19 +19,37 @@ import json
 # -------------------
 def signup_view(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-
-            # By default, add every new user to "ModelUploader"
+        username = request.POST.get("username")
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+        # Validation
+        errors = []
+        if not username or not password1 or not password2:
+            errors.append("All fields are required.")
+        if password1 and password2 and password1 != password2:
+            errors.append("Passwords do not match.")
+        if User.objects.filter(username=username).exists():
+            errors.append("Username already exists.")
+        if password1 and len(password1) < 8:
+            errors.append("Password must be at least 8 characters long.")
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return render(request, "note2webapp/login.html")
+        try:
+            # Create user
+            user = User.objects.create_user(username=username, password=password1)
+            # Create profile with default role as 'uploader'
+            Profile.objects.create(user=user, role="uploader")
+            # Add to ModelUploader group by default
             group, created = Group.objects.get_or_create(name="ModelUploader")
             user.groups.add(group)
-
-            login(request, user)
-            return redirect("dashboard")
-    else:
-        form = UserCreationForm()
-    return render(request, "note2webapp/signup.html", {"form": form})
+            messages.success(request, "Account created successfully! Please login.")
+            return redirect("login")
+        except Exception as e:
+            messages.error(request, f"Error creating account: {str(e)}")
+            return render(request, "note2webapp/login.html")
+    return render(request, "note2webapp/login.html")
 
 
 # -------------------
@@ -39,14 +57,21 @@ def signup_view(request):
 # -------------------
 def login_view(request):
     if request.method == "POST":
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
             login(request, user)
+            # Redirect based on user role
+            if hasattr(user, "profile"):
+                if user.profile.role == "reviewer":
+                    return redirect("reviewer_dashboard")
+                else:
+                    return redirect("dashboard")
             return redirect("dashboard")
-    else:
-        form = AuthenticationForm()
-    return render(request, "note2webapp/login.html", {"form": form})
+        else:
+            messages.error(request, "Invalid username or password.")
+    return render(request, "note2webapp/login.html")
 
 
 # -------------------
@@ -54,6 +79,7 @@ def login_view(request):
 # -------------------
 def logout_view(request):
     logout(request)
+    messages.success(request, "You have been logged out successfully.")
     return redirect("login")
 
 
@@ -275,64 +301,107 @@ def model_uploader_dashboard(request):
 # -------------------
 @login_required
 def reviewer_dashboard(request):
-    """Unified reviewer dashboard: list, detail, feedback"""
+    """
+    Reviewer dashboard with 3 modes:
+
+    1. /reviewer/?page=list
+       Show all models that currently have an active, passing version.
+
+    2. /reviewer/?page=detail&pk=<model_id>
+       Show a single model and its active version (the one serving/live).
+       This is where we render the "Model / Version Information" card.
+
+    3. /reviewer/?page=add_feedback&pk=<version_id>
+       Let reviewer submit feedback on a specific version.
+    """
+
     page = request.GET.get("page", "list")
     pk = request.GET.get("pk")
-
     context = {"page": page}
 
-    # ---List all uploaded model versions---
+    # -------------------------------------------------
+    # MODE: LIST (default)
+    # -------------------------------------------------
     if page == "list":
-        versions = ModelVersion.objects.all().order_by("-created_at")
-        context["versions"] = versions
+        # Get models that have at least one active, PASS, not-deleted version
+        uploads = (
+            ModelUpload.objects.filter(
+                versions__is_active=True,
+                versions__status="PASS",
+                versions__is_deleted=False,
+            )
+            .distinct()
+            .order_by("-created_at")
+        )
 
-    # ---View details of a specific model version---
-    elif page == "detail" and pk:
-        version = get_object_or_404(ModelVersion, pk=pk)
-        context["version"] = version
-        # In future, we'll show validation logs, files, predictions, etc.
+        # Attach the active version object to each upload for convenience
+        for upload in uploads:
+            upload.active_version = upload.versions.filter(
+                is_active=True,
+                status="PASS",
+                is_deleted=False,
+            ).first()
 
-    # ---Add feedback (integrated, not separate view)---
-    elif page == "add_feedback" and pk:
-        version = get_object_or_404(ModelVersion, pk=pk)
+        context["uploads"] = uploads
+        return render(request, "note2webapp/reviewer.html", context)
+
+    # -------------------------------------------------
+    # MODE: DETAIL (model-level view)
+    # -------------------------------------------------
+    if page == "detail" and pk:
+        # pk here is the model id (ModelUpload.pk)
+        try:
+            upload = ModelUpload.objects.get(pk=pk)
+        except ModelUpload.DoesNotExist:
+            messages.error(request, "Model not found.")
+            return redirect("/reviewer/?page=list")
+
+        active_version = upload.versions.filter(
+            is_active=True,
+            status="PASS",
+            is_deleted=False,
+        ).first()
+
+        if not active_version:
+            messages.warning(request, "This model has no active version.")
+            return redirect("/reviewer/?page=list")
+
+        context.update(
+            {
+                "upload": upload,
+                "active_version": active_version,
+            }
+        )
+        return render(request, "note2webapp/reviewer.html", context)
+
+    # -------------------------------------------------
+    # MODE: ADD_FEEDBACK (version-level view)
+    # -------------------------------------------------
+    if page == "add_feedback" and pk:
+        # pk here is the version id (ModelVersion.pk)
+        try:
+            version = ModelVersion.objects.get(pk=pk)
+        except ModelVersion.DoesNotExist:
+            messages.error(request, "Version not found.")
+            return redirect("/reviewer/?page=list")
+
         if request.method == "POST":
-            comment = request.POST.get("comment", "")
-            print(f"📝 Feedback for version {version.id}: {comment}")
-            # Later, store in DB via Feedback model
-            return redirect(f"/dashboard/?page=detail&pk={version.pk}")
+            comment = request.POST.get("comment", "").strip()
+            if comment:
+                # TODO: persist reviewer feedback somewhere (VersionFeedback model, etc.)
+                messages.success(request, "Feedback submitted successfully!")
+                # after submitting feedback, go back to model detail view
+                return redirect(f"/reviewer/?page=detail&pk={version.upload.pk}")
+            else:
+                messages.error(request, "Please provide feedback comment.")
+
         context["version"] = version
+        return render(request, "note2webapp/reviewer.html", context)
 
-    return render(request, "note2webapp/reviewer.html", context)
-
-
-# -------------------
-# VERSION MANAGEMENT
-# -------------------
-@login_required
-def model_versions(request, model_id):
-    """View all versions of a model including deleted ones"""
-    model_upload = get_object_or_404(ModelUpload, pk=model_id, user=request.user)
-    versions = ModelVersion.objects.filter(upload=model_upload).order_by("-created_at")
-
-    # Counts for summary
-    total_count = versions.count()
-    active_count = versions.filter(
-        is_active=True, is_deleted=False, status="PASS"
-    ).count()
-    available_count = versions.filter(is_deleted=False, status="PASS").count()
-    deleted_count = versions.filter(is_deleted=True).count()
-    failed_count = versions.filter(is_deleted=False, status="FAIL").count()
-
-    context = {
-        "model_upload": model_upload,
-        "versions": versions,
-        "total_count": total_count,
-        "active_count": active_count,
-        "available_count": available_count,
-        "deleted_count": deleted_count,
-        "failed_count": failed_count,
-    }
-    return render(request, "note2webapp/model_versions.html", context)
+    # -------------------------------------------------
+    # FALLBACK
+    # -------------------------------------------------
+    return redirect("/reviewer/?page=list")
 
 
 @login_required
@@ -613,4 +682,73 @@ def test_model_cpu(request, version_id):
             "schema_json": json.dumps(schema_json, indent=2) if schema_json else None,
             "result": result,
         },
+    )
+
+
+@login_required
+def model_versions(request, model_id):
+    """View for managing all versions of a specific model"""
+    model_upload = get_object_or_404(ModelUpload, pk=model_id, user=request.user)
+    versions = model_upload.versions.all().order_by("-created_at")
+    # Calculate version counts
+    total_count = versions.count()
+    active_count = versions.filter(
+        is_active=True, is_deleted=False, status="PASS"
+    ).count()
+    available_count = versions.filter(is_deleted=False, status="PASS").count()
+    failed_count = versions.filter(is_deleted=False, status="FAIL").count()
+    deleted_count = versions.filter(is_deleted=True).count()
+    context = {
+        "model_upload": model_upload,
+        "versions": versions,
+        "total_count": total_count,
+        "active_count": active_count,
+        "available_count": available_count,
+        "failed_count": failed_count,
+        "deleted_count": deleted_count,
+    }
+    return render(request, "note2webapp/model_versions.html", context)
+
+
+# Create a simple form for editing information only
+class VersionInformationForm(forms.ModelForm):
+    class Meta:
+        model = ModelVersion
+        fields = ["information"]
+        widgets = {
+            "information": forms.Textarea(
+                attrs={
+                    "rows": 6,
+                    "placeholder": "Enter information about this model version...",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["information"].required = True
+        self.fields["information"].label = "Model Information"
+
+
+@login_required
+def edit_version_information(request, version_id):
+    version = get_object_or_404(ModelVersion, id=version_id)
+    # Check if user owns this model
+    if version.upload.user != request.user:
+        messages.error(request, "You don't have permission to edit this version.")
+        return redirect("dashboard")
+    if request.method == "POST":
+        form = VersionInformationForm(request.POST, instance=version)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, f"Information for version {version.tag} updated successfully!"
+            )
+            return redirect("model_versions", model_id=version.upload.id)
+    else:
+        form = VersionInformationForm(instance=version)
+    return render(
+        request,
+        "note2webapp/edit_version_information.html",
+        {"form": form, "version": version},
     )
