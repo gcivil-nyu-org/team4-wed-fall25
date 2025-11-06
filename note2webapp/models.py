@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.db.models import Max
 
 
 # -----------------------
@@ -25,7 +26,11 @@ def create_or_update_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
     else:
-        instance.profile.save()
+        # handle users created before profile
+        if hasattr(instance, "profile"):
+            instance.profile.save()
+        else:
+            Profile.objects.create(user=instance)
 
 
 # -----------------------
@@ -42,25 +47,27 @@ class ModelUpload(models.Model):
 
 class ModelVersion(models.Model):
     upload = models.ForeignKey(
-        ModelUpload, on_delete=models.CASCADE, related_name="versions"
+        "ModelUpload", on_delete=models.CASCADE, related_name="versions"
     )
+
+    # uploaded files
     model_file = models.FileField(upload_to="models/")
     predict_file = models.FileField(upload_to="predict/")
-    schema_file = models.FileField(
-        upload_to="schemas/", blank=True, null=True
-    )  # for test data generation
+    schema_file = models.FileField(upload_to="schemas/", blank=True, null=True)
+
     tag = models.CharField(max_length=100)
-    # ADD THIS: Model information field
     information = models.TextField(blank=True, null=True)
 
+    # ONLY these 3 categories now
+    CATEGORY_CHOICES = [
+        ("sentiment", "Sentiment"),
+        ("recommendation", "Recommendation"),
+        ("text-classification", "Text Classification"),
+    ]
     category = models.CharField(
         max_length=50,
-        choices=[
-            ("research", "Research"),
-            ("production", "Production"),
-            ("testing", "Testing"),
-        ],
-        default="research",
+        choices=CATEGORY_CHOICES,
+        default="sentiment",
     )
 
     status = models.CharField(
@@ -72,29 +79,33 @@ class ModelVersion(models.Model):
     log = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Soft delete fields
+    # Soft delete
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
-    # Store version number permanently
+
+    # Permanent version number per upload
     version_number = models.IntegerField(default=1)
+
+    # ✅ NEW: hashes for dedup
+    model_hash = models.CharField(max_length=64, blank=True, null=True)
+    predict_hash = models.CharField(max_length=64, blank=True, null=True)
+    schema_hash = models.CharField(max_length=64, blank=True, null=True)
+    bundle_hash = models.CharField(max_length=64, blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
         # Auto-generate version number for new versions only
-        if not self.pk:  # Only for new objects
-            from django.db.models import Max
-
-            # Get the highest version number for this upload
-            last_version = ModelVersion.objects.filter(upload=self.upload).aggregate(
-                Max("version_number")
-            )["version_number__max"]
+        if not self.pk:
+            last_version = (
+                ModelVersion.objects.filter(upload=self.upload)
+                .aggregate(Max("version_number"))["version_number__max"]
+            )
             self.version_number = (last_version or 0) + 1
         super().save(*args, **kwargs)
 
     def get_version_number(self):
-        """Keep this method for backwards compatibility"""
         return self.version_number
 
     def __str__(self):
@@ -104,3 +115,11 @@ class ModelVersion(models.Model):
             return f"{upload_name} - {version_str} ({self.status})"
         except Exception:
             return f"ModelVersion (unsaved) - {self.status}"
+
+    def get_media_dir(self):
+        """
+        Logical place on disk:
+        media/<category>/<upload.name>/v<version_number>/
+        """
+        safe_name = getattr(self.upload, "name", f"upload-{self.upload_id}")
+        return f"{self.category}/{safe_name}/v{self.version_number}/"
