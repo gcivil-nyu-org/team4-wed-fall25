@@ -62,7 +62,9 @@ class VersionForm(forms.ModelForm):
         self.fields["schema_file"].required = False
 
         self.fields["model_file"].help_text = "Required: Upload your .pt model file"
-        self.fields["predict_file"].help_text = "Required: Upload your .py prediction script"
+        self.fields["predict_file"].help_text = (
+            "Required: Upload your .py prediction script"
+        )
         self.fields["schema_file"].help_text = "Required: Upload your .json schema file"
 
     def clean(self):

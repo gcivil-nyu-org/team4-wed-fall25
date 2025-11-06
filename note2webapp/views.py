@@ -198,7 +198,9 @@ def model_uploader_dashboard(request):
                     {
                         "form": form,
                         "upload": upload,
-                        "retry_version_id": retry_version_id if retry_version_id else None,
+                        "retry_version_id": (
+                            retry_version_id if retry_version_id else None
+                        ),
                         "page": "add_version",
                         "pk": pk,
                     }
@@ -208,9 +210,7 @@ def model_uploader_dashboard(request):
             form = VersionForm(request.POST, request.FILES)
             if form.is_valid():
                 # 1. Hash incoming files
-                incoming_model_hash = sha256_uploaded_file(
-                    request.FILES["model_file"]
-                )
+                incoming_model_hash = sha256_uploaded_file(request.FILES["model_file"])
                 incoming_predict_hash = sha256_uploaded_file(
                     request.FILES["predict_file"]
                 )
@@ -396,16 +396,17 @@ def soft_delete_version(request, version_id):
     # permissions
     if request.user != version.upload.user and not request.user.is_staff:
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"success": False, "error": "Permission denied"}, status=403)
+            return JsonResponse(
+                {"success": False, "error": "Permission denied"}, status=403
+            )
         messages.error(request, "You don't have permission to delete this version.")
         return redirect("dashboard")
 
     # if it's active and there are other versions -> block
     if version.is_active:
-        other_versions = (
-            ModelVersion.objects.filter(upload=version.upload, is_deleted=False)
-            .exclude(id=version_id)
-        )
+        other_versions = ModelVersion.objects.filter(
+            upload=version.upload, is_deleted=False
+        ).exclude(id=version_id)
         if other_versions.exists():
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                 return JsonResponse(
@@ -476,11 +477,16 @@ def activate_version(request, version_id):
 
     if version.status != "PASS":
         status_msg = (
-            "pending validation" if version.status == "PENDING" else "that failed validation"
+            "pending validation"
+            if version.status == "PENDING"
+            else "that failed validation"
         )
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
-                {"success": False, "error": f"Cannot activate a version that is {status_msg}."},
+                {
+                    "success": False,
+                    "error": f"Cannot activate a version that is {status_msg}.",
+                },
                 status=400,
             )
         messages.error(
@@ -511,13 +517,18 @@ def deprecate_version(request, version_id):
     version = get_object_or_404(ModelVersion, id=version_id)
     if request.user != version.upload.user and not request.user.is_staff:
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"success": False, "error": "Permission denied"}, status=403)
+            return JsonResponse(
+                {"success": False, "error": "Permission denied"}, status=403
+            )
         messages.error(request, "You don't have permission to deprecate this version.")
         return redirect("dashboard")
 
     if version.is_deleted:
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"success": False, "error": "Cannot deprecate deleted version"}, status=400)
+            return JsonResponse(
+                {"success": False, "error": "Cannot deprecate deleted version"},
+                status=400,
+            )
         messages.error(request, "Cannot deprecate a deleted version.")
         return redirect("dashboard")
 
@@ -549,12 +560,16 @@ def delete_model(request, model_id):
 
     if request.user != model_upload.user and not request.user.is_staff:
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"success": False, "error": "Permission denied"}, status=403)
+            return JsonResponse(
+                {"success": False, "error": "Permission denied"}, status=403
+            )
         messages.error(request, "You don't have permission to delete this model.")
         return redirect("dashboard")
 
     # only count non-deleted versions
-    remaining = ModelVersion.objects.filter(upload=model_upload, is_deleted=False).count()
+    remaining = ModelVersion.objects.filter(
+        upload=model_upload, is_deleted=False
+    ).count()
 
     if remaining > 0:
         msg = f"Cannot delete model with {remaining} active versions. Please delete all versions first."
@@ -570,7 +585,10 @@ def delete_model(request, model_id):
 
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
-                {"success": True, "message": f'Model "{model_name}" has been permanently deleted.'}
+                {
+                    "success": True,
+                    "message": f'Model "{model_name}" has been permanently deleted.',
+                }
             )
         messages.success(request, f'Model "{model_name}" has been permanently deleted.')
         return redirect("dashboard")
@@ -590,7 +608,9 @@ def model_versions(request, model_id):
         "model_upload": model_upload,
         "versions": versions,
         "total_count": versions.count(),
-        "active_count": versions.filter(is_active=True, is_deleted=False, status="PASS").count(),
+        "active_count": versions.filter(
+            is_active=True, is_deleted=False, status="PASS"
+        ).count(),
         "available_count": versions.filter(is_deleted=False, status="PASS").count(),
         "failed_count": versions.filter(is_deleted=False, status="FAIL").count(),
         "deleted_count": versions.filter(is_deleted=True).count(),
@@ -607,7 +627,10 @@ class VersionInformationForm(forms.ModelForm):
         fields = ["information"]
         widgets = {
             "information": forms.Textarea(
-                attrs={"rows": 6, "placeholder": "Enter information about this model version..."}
+                attrs={
+                    "rows": 6,
+                    "placeholder": "Enter information about this model version...",
+                }
             )
         }
 
@@ -705,7 +728,9 @@ def test_model_cpu(request, version_id):
                 elif isinstance(parsed, dict):
                     result = test_model_on_cpu(version, parsed)
                 else:
-                    parse_error = "Top-level JSON must be an object or a list of objects."
+                    parse_error = (
+                        "Top-level JSON must be an object or a list of objects."
+                    )
             except json.JSONDecodeError as e:
                 parse_error = f"Invalid JSON: {str(e)}"
 

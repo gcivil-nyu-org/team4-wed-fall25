@@ -98,10 +98,9 @@ class ModelVersion(models.Model):
     def save(self, *args, **kwargs):
         # Auto-generate version number for new versions only
         if not self.pk:
-            last_version = (
-                ModelVersion.objects.filter(upload=self.upload)
-                .aggregate(Max("version_number"))["version_number__max"]
-            )
+            last_version = ModelVersion.objects.filter(upload=self.upload).aggregate(
+                Max("version_number")
+            )["version_number__max"]
             self.version_number = (last_version or 0) + 1
         super().save(*args, **kwargs)
 

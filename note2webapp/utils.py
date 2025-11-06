@@ -318,9 +318,7 @@ def validate_model(version):
         elif num_params == 2:
             result = module.predict(version.model_file.path, input_data)
         else:
-            raise Exception(
-                f"predict() has {num_params} parameters, expected 1 or 2."
-            )
+            raise Exception(f"predict() has {num_params} parameters, expected 1 or 2.")
 
         # try to fix common torch.load seek error
         if _is_seek_error(result):
@@ -328,9 +326,7 @@ def validate_model(version):
                 if num_params == 1:
                     result = module.predict(version.model_file.path)
                 elif num_params == 2:
-                    model_obj = _load_model_for_version(
-                        module, version.model_file.path
-                    )
+                    model_obj = _load_model_for_version(module, version.model_file.path)
                     if model_obj is not None:
                         result = module.predict(model_obj, input_data)
             except Exception:
