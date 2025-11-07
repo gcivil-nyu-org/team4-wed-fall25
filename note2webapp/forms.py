@@ -1,3 +1,4 @@
+# note2webapp/forms.py
 from django import forms
 from .models import ModelUpload, ModelVersion
 
@@ -22,7 +23,7 @@ class VersionForm(forms.ModelForm):
                 "placeholder": "Enter information about this model version...",
             }
         ),
-        required=True,  # CHANGE THIS FROM False TO True
+        required=True,
         label="Model Information",
         help_text="Required: Add relevant information about this version",
     )
@@ -45,11 +46,21 @@ class VersionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Don't set required in __init__ - let JavaScript handle validation
+
+        # enforce the 3 categories you decided
+        self.fields["category"].choices = [
+            ("sentiment", "Sentiment"),
+            ("recommendation", "Recommendation"),
+            ("text-classification", "Text Classification"),
+        ]
+        if not self.initial.get("category"):
+            self.fields["category"].initial = "sentiment"
+
+        # we’ll do backend checks, so keep these False here
         self.fields["model_file"].required = False
         self.fields["predict_file"].required = False
         self.fields["schema_file"].required = False
-        # Add help text
+
         self.fields["model_file"].help_text = "Required: Upload your .pt model file"
         self.fields["predict_file"].help_text = (
             "Required: Upload your .py prediction script"
@@ -62,7 +73,7 @@ class VersionForm(forms.ModelForm):
         predict_file = cleaned_data.get("predict_file")
         schema_file = cleaned_data.get("schema_file")
         information = cleaned_data.get("information")
-        # Backend validation
+
         if not model_file:
             raise forms.ValidationError("Model file (.pt) is required")
         if not predict_file:
@@ -71,6 +82,7 @@ class VersionForm(forms.ModelForm):
             raise forms.ValidationError("Schema file (.json) is required")
         if not information or not information.strip():
             raise forms.ValidationError("Model Information is required")
+
         return cleaned_data
 
     def clean_model_file(self):

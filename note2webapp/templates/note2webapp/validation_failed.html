@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 
-
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -17,7 +16,10 @@
 
     <div class="card bg-dark text-light">
         <div class="card-body">
-            <h5 class="mb-3">Validation Error Details (Version: v{{ version.get_version_number }}, Tag: {{ version.tag }})</h5>
+            <h5 class="mb-3">
+                Validation Error Details (Version: v{{ version.get_version_number }}, Tag: {{ version.tag }})
+            </h5>
+            <p class="mb-3">Category: {{ version.get_category_display }}</p>
             
             <div class="bg-black p-3 rounded mb-4">
                 <pre class="text-danger mb-0">{{ version.log|default:"No error details available" }}</pre>

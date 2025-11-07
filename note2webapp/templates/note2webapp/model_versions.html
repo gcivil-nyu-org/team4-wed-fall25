@@ -13,6 +13,24 @@
         </a>
     </div>
 
+    {# show Django messages if any #}
+    {% if messages %}
+      {% for message in messages %}
+        <div class="vm-message">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    {# show non-field errors from the version form (this is where duplicate-upload error will show) #}
+    {% if version_form and version_form.non_field_errors %}
+      <div class="vm-error-box">
+        {{ version_form.non_field_errors.0 }}
+      </div>
+    {% elif form and form.non_field_errors %}
+      <div class="vm-error-box">
+        {{ form.non_field_errors.0 }}
+      </div>
+    {% endif %}
+
     <!-- Header -->
     <div class="vm-header">
         <div class="vm-title-section">
@@ -224,6 +242,26 @@
     color: #8f96a3;
     font-size: 0.9rem;
     margin: 0;
+}
+
+/* Error + message boxes */
+.vm-error-box {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    font-size: 0.85rem;
+}
+
+.vm-message {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
 }
 
 /* Table card */

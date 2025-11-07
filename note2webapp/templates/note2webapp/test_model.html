@@ -1,22 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="test-model-shell">
-    <!-- Top bar with back button -->
+
+    <!-- Top bar -->
     <div class="tm-top-bar">
         {% if request.user.profile.role == "uploader" %}
             <a href="{% url 'model_versions' version.upload.id %}" class="tm-back-btn">
-                <span>←</span>
-                <span>Back to Version Management</span>
+                ← Back to Version Management
             </a>
         {% elif request.user.profile.role == "reviewer" %}
             <a href="{% url 'reviewer_dashboard' %}?page=detail&pk={{ version.upload.id }}" class="tm-back-btn">
-                <span>←</span>
-                <span>Back to Versions</span>
+                ← Back to Versions
             </a>
         {% else %}
             <a href="{% url 'dashboard' %}" class="tm-back-btn">
-                <span>←</span>
-                <span>Back to Dashboard</span>
+                ← Back to Dashboard
             </a>
         {% endif %}
     </div>
@@ -27,7 +25,7 @@
         <p class="tm-subtitle">Run inference tests on your model version</p>
     </div>
 
-    <!-- Model Info Card -->
+    <!-- model info block -->
     <div class="tm-info-card">
         <div class="tm-info-grid">
             <div class="tm-info-item">
@@ -40,7 +38,7 @@
             </div>
             <div class="tm-info-item">
                 <span class="tm-info-label">Category:</span>
-                <span class="tm-info-value">{{ version.category|title }}</span>
+                <span class="tm-info-value">{{ version.get_category_display }}</span>
             </div>
             <div class="tm-info-item">
                 <span class="tm-info-label">Uploaded:</span>
@@ -49,351 +47,293 @@
         </div>
     </div>
 
-    <!-- Test Form Card -->
+    {# AFTER RUN: show split layout #}
+    {% if result %}
+    <div class="tm-body-split">
+        <!-- LEFT: form -->
+        <div class="tm-form-card">
+            <h5 class="tm-section-title">Input Data</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="tm-field">
+                    <label for="inputData" class="tm-label">
+                        Enter input JSON <span class="tm-required">*</span>
+                    </label>
+                    <div class="tm-hint" style="color:#f472b6;">
+                        - Single case: {"text": "The food was delicious"}<br>
+                        - Multiple cases: [{"text": "A"}, {"text": "B"}]
+                    </div>
+                    <textarea
+                        id="inputData"
+                        name="input_data"
+                        rows="10"
+                        class="tm-textarea"
+                    >{{ input_json|default:'' }}</textarea>
+                </div>
+                <div class="tm-footer">
+                    <button type="submit" class="tm-submit-btn">Run Test</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- RIGHT: result -->
+        <div class="tm-result-card">
+            <h5 class="tm-section-title">Test Result</h5>
+            {% if result.status == "ok" %}
+                <div class="tm-result-success">
+                    <div class="tm-result-header">
+                        <span>Success</span>
+                    </div>
+                    {% if result.output_list %}
+                        {% for item in result.output_list %}
+                            <pre class="tm-result-output">{{ item|safe }}</pre>
+                        {% endfor %}
+                    {% else %}
+                        <pre class="tm-result-output">{{ result.output|safe }}</pre>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="tm-result-error">
+                    <div class="tm-result-header">
+                        <span>Error</span>
+                    </div>
+                    <pre class="tm-result-output">{{ result.error|safe }}</pre>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    {# BEFORE RUN: single column like your screenshot #}
     <div class="tm-form-card">
         <h5 class="tm-section-title">Input Data</h5>
-        
-        <form id="testForm" method="post">
+        <form method="post">
             {% csrf_token %}
-            
             <div class="tm-field">
                 <label for="inputData" class="tm-label">
                     Enter input JSON <span class="tm-required">*</span>
                 </label>
                 <div class="tm-hint">
-                    Provide valid JSON matching your model's input schema. Example: {"x1":1,"x2":2,"x3":3,"x4":4}
+                    Provide valid JSON matching your model's input schema.
+                    Example: {"text": "The food was delicious and service was excellent"}
                 </div>
                 <textarea
                     id="inputData"
                     name="input_data"
-                    rows="6"
+                    rows="8"
                     class="tm-textarea"
-                    placeholder='{"x1": 1.0, "x2": 2.0, "x3": 3.0, "x4": 4.0}'
-                ></textarea>
+                    placeholder='{"text": "The food was delicious and service was excellent"}'
+                >{{ input_json|default:'' }}</textarea>
             </div>
-
             <div class="tm-footer">
-                <button type="submit" class="tm-submit-btn">
-                    <i class="fas fa-play"></i>
-                    <span>Run Test</span>
-                </button>
+                <button type="submit" class="tm-submit-btn">Run Test</button>
             </div>
         </form>
-    </div>
-
-    <!-- Result Card -->
-    {% if result %}
-    <div class="tm-result-card">
-        <h5 class="tm-section-title">Test Result</h5>
-        
-        {% if result.status == "ok" %}
-        <div class="tm-result-success">
-            <div class="tm-result-header">
-                <i class="fas fa-check-circle"></i>
-                <span>Success</span>
-            </div>
-            <pre class="tm-result-output">{{ result.output|safe }}</pre>
-        </div>
-        {% else %}
-        <div class="tm-result-error">
-            <div class="tm-result-header">
-                <i class="fas fa-times-circle"></i>
-                <span>Error</span>
-            </div>
-            <pre class="tm-result-output">{{ result.error }}</pre>
-        </div>
-        {% endif %}
     </div>
     {% endif %}
 </div>
 
 <style>
-/* Main container */
+/* container */
 .test-model-shell {
-    max-width: 900px;
+    max-width: 1000px;
     background-color: #1b1d22;
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.04);
     border-radius: 16px;
     padding: 24px;
     margin: 0 auto;
-    box-shadow: 0 32px 64px rgba(0,0,0,0.8);
+    margin-bottom: 40px;
     color: #fff;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.4);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Top bar */
+/* top bar */
 .tm-top-bar {
     margin-bottom: 20px;
 }
-
 .tm-back-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background-color: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #fff;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.tm-back-btn:hover {
-    background-color: rgba(255,255,255,0.1);
-    text-decoration: none;
-    color: #fff;
-    transform: translateX(-2px);
-}
-
-/* Header */
-.tm-header {
-    margin-bottom: 24px;
-    text-align: center;
-    padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-
-.tm-title {
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: #fff;
-    margin: 0 0 8px 0;
-    line-height: 1.3;
-}
-
-.tm-subtitle {
-    color: #8f96a3;
-    font-size: 0.9rem;
-    margin: 0;
-    line-height: 1.4;
-}
-
-/* Info Card */
-.tm-info-card {
-    background-color: #24272d;
-    border: 1px solid rgba(255,255,255,0.07);
+    gap: 6px;
+    background-color: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 12px;
-    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
-    padding: 20px;
-    margin-bottom: 24px;
-}
-
-.tm-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-}
-
-.tm-info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.tm-info-label {
-    font-size: 0.8rem;
-    color: #8f96a3;
-    font-weight: 500;
-}
-
-.tm-info-value {
-    font-size: 0.9rem;
-    color: #fff;
-    font-weight: 600;
-}
-
-/* Form Card */
-.tm-form-card {
-    background-color: #24272d;
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px;
-    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
-    padding: 20px;
-    margin-bottom: 24px;
-}
-
-.tm-section-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #fff;
-    margin: 0 0 16px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    padding-bottom: 8px;
-}
-
-.tm-field {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 24px;
-}
-
-.tm-label {
+    padding: 9px 16px;
     font-size: 0.85rem;
     font-weight: 500;
     color: #fff;
-    display: block;
-    margin-bottom: 6px;
-    line-height: 1.3;
+    text-decoration: none;
+    transition: all .15s ease;
+}
+.tm-back-btn:hover {
+    background-color: rgba(255,255,255,0.07);
 }
 
+/* header */
+.tm-header {
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 20px;
+}
+.tm-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 6px 0;
+}
+.tm-subtitle {
+    font-size: 0.9rem;
+    color: #8f96a3;
+}
+
+/* info strip */
+.tm-info-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+}
+.tm-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+.tm-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.tm-info-label {
+    font-size: 0.75rem;
+    color: #a3a8b3;
+}
+.tm-info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* form card */
+.tm-form-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 18px 18px 22px;
+    margin-bottom: 20px;
+}
+.tm-section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    padding-bottom: 8px;
+}
+.tm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.tm-label {
+    font-size: 0.8rem;
+    color: #fff;
+}
 .tm-required {
     color: #ff6b6b;
-    font-weight: 600;
-    margin-left: 4px;
 }
-
 .tm-hint {
-    font-size: 0.8rem;
-    line-height: 1.4;
+    font-size: 0.75rem;
     color: #9ca3af;
-    margin-bottom: 8px;
 }
 
+/* textarea */
 .tm-textarea {
-    background-color: #1b1d22 !important;
-    color: #fff !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    font-size: 0.9rem;
-    border-radius: 8px;
-    line-height: 1.5;
-    padding: 12px;
-    resize: vertical;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace;
-}
-
-.tm-textarea:focus {
-    outline: 2px solid rgba(80,130,255,0.6);
-    outline-offset: 0;
-    box-shadow: 0 0 0 4px rgba(80,130,255,0.15);
-    border-color: rgba(80,130,255,0.8) !important;
-}
-
-/* Footer with submit button */
-.tm-footer {
-    margin-top: 24px;
-}
-
-.tm-submit-btn {
-    appearance: none;
-    border: 0;
+    background-color: #1b1d22;
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 10px;
+    padding: 10px 12px;
+    color: #fff;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+    min-height: 150px;
+}
+.tm-textarea:focus {
+    outline: none;
+    border-color: rgba(80,130,255,0.6);
+    box-shadow: 0 0 0 3px rgba(80,130,255,0.12);
+}
+
+/* button */
+.tm-footer {
+    margin-top: 16px;
+}
+.tm-submit-btn {
     width: 100%;
-    background: radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
-    box-shadow: 0 24px 48px rgba(35,76,228,0.4);
+    background: linear-gradient(90deg, #3b82ff 0%, #2154ff 100%);
+    border: none;
+    border-radius: 10px;
     color: #fff;
     font-weight: 600;
-    font-size: 1rem;
-    line-height: 1.3;
-    padding: 14px 16px;
-    text-align: center;
+    padding: 12px 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    transition: transform .1s ease, box-shadow .1s ease;
+    box-shadow: 0 16px 30px rgba(40,92,255,0.3);
 }
-
 .tm-submit-btn:hover {
-    filter: brightness(1.07);
     transform: translateY(-1px);
-    box-shadow: 0 28px 56px rgba(35,76,228,0.5);
+    box-shadow: 0 18px 34px rgba(40,92,255,0.35);
 }
 
-.tm-submit-btn:active {
-    transform: translateY(0);
-}
-
-.tm-submit-btn i {
-    font-size: 1rem;
-}
-
-/* Result Card */
+/* result card */
 .tm-result-card {
     background-color: #24272d;
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.03);
     border-radius: 12px;
-    box-shadow: 0 24px 48px rgba(0,0,0,0.7);
-    padding: 20px;
-    animation: slideIn 0.3s ease;
+    padding: 18px 18px 22px;
 }
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.tm-result-success,
-.tm-result-error {
-    margin-top: 8px;
-}
-
 .tm-result-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
     font-weight: 600;
-    font-size: 0.95rem;
+    margin-bottom: 12px;
 }
-
 .tm-result-success .tm-result-header {
     color: #4ade80;
 }
-
 .tm-result-error .tm-result-header {
     color: #f87171;
 }
-
-.tm-result-header i {
-    font-size: 1.2rem;
-}
-
 .tm-result-output {
     background-color: #000;
     border-radius: 8px;
-    padding: 16px;
-    margin: 0;
-    overflow-x: auto;
-    box-shadow: 0 16px 32px rgba(0,0,0,0.8);
+    padding: 14px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace;
 }
-
 .tm-result-success .tm-result-output {
     color: #4ade80;
-    border: 1px solid rgba(74, 222, 128, 0.2);
 }
-
 .tm-result-error .tm-result-output {
-    color: #f87171;
-    border: 1px solid rgba(248, 113, 113, 0.2);
+    color: #fca5a5;
 }
 
-/* Responsive */
-@media (max-width: 600px) {
-    .test-model-shell {
-        padding: 16px;
-    }
-    
-    .tm-info-grid {
+/* split layout after run */
+.tm-body-split {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 20px;
+}
+
+/* responsive */
+@media (max-width: 900px) {
+    .tm-body-split {
         grid-template-columns: 1fr;
     }
-    
-    .tm-title {
-        font-size: 1.2rem;
+    .test-model-shell {
+        padding: 16px;
     }
 }
 </style>

@@ -1,3 +1,4 @@
+# note2webapp/urls.py
 from django.urls import path
 from . import views
 
@@ -7,6 +8,7 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("dashboard/", views.dashboard, name="dashboard"),
+    path("reviewer/", views.reviewer_dashboard, name="reviewer_dashboard"),
     path("model-versions/<int:model_id>/", views.model_versions, name="model_versions"),
     path(
         "delete-version/<int:version_id>/",
@@ -29,11 +31,17 @@ urlpatterns = [
         name="validation_failed",
     ),
     path("delete-model/<int:model_id>/", views.delete_model, name="delete_model"),
-    path("reviewer/", views.reviewer_dashboard, name="reviewer_dashboard"),
     path("test-model/<int:version_id>/", views.test_model_cpu, name="test_model_cpu"),
     path(
         "version/<int:version_id>/edit-information/",
         views.edit_version_information,
         name="edit_version_information",
+    ),
+    # NEW API endpoints
+    path("api/run-model/", views.run_model_from_path, name="run_model_from_path"),
+    path(
+        "api/run-model/<int:version_id>/",
+        views.run_model_by_version_id,
+        name="run_model_by_version_id",
     ),
 ]
