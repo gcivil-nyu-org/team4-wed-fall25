@@ -7,12 +7,17 @@ class VersionFormTests(TestCase):
     """Covers all clean() and clean_<field>() logic in VersionForm."""
 
     def setUp(self):
+        # Build a form instance just to read its category choices
+        tmp_form = VersionForm()
+        # Pick the first allowed value (('sentiment', 'Sentiment'), etc.)
+        self.valid_category = tmp_form.fields["category"].choices[0][0]
+
         self.valid_files = {
             "model_file": SimpleUploadedFile("model.pt", b"dummy model content"),
             "predict_file": SimpleUploadedFile("predict.py", b"print('ok')"),
             "schema_file": SimpleUploadedFile("schema.json", b"{}"),
             "tag": "v1.0",
-            "category": "research",
+            "category": self.valid_category,
             "information": "This is a valid model upload test.",
         }
 
@@ -90,4 +95,5 @@ class VersionFormTests(TestCase):
         files["tag"] = "v2.0"
         form = VersionForm(data=files, files=files)
         self.assertTrue(form.is_valid(), form.errors)
+        # If you really need to call clean_tag explicitly:
         self.assertEqual(form.clean_tag(), "v2.0")
