@@ -3,9 +3,6 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.urls import path
-from django.shortcuts import render
-from django.urls import reverse
-from django.utils.html import format_html
 
 from .models import Profile, ModelUpload, ModelVersion
 from .utils import delete_model_media_tree, delete_version_files_and_dir
@@ -19,22 +16,22 @@ class CustomAdminSite(admin.AdminSite):
     site_header = "Note2Web Administration"
     site_title = "Note2Web Admin"
     index_title = "Welcome to Note2Web Administration"
-    
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('stats/', self.admin_view(views.admin_stats), name='admin_stats'),
+            path("stats/", self.admin_view(views.admin_stats), name="admin_stats"),
         ]
         return custom_urls + urls
-    
+
     def index(self, request, extra_context=None):
         extra_context = extra_context or {}
-        extra_context['show_stats_button'] = True
+        extra_context["show_stats_button"] = True
         return super().index(request, extra_context)
 
 
 # Create custom admin site instance
-admin_site = CustomAdminSite(name='admin')
+admin_site = CustomAdminSite(name="admin")
 
 
 # ---------------------------

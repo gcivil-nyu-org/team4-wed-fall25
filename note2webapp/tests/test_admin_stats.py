@@ -15,9 +15,7 @@ class AdminStatsViewTests(TestCase):
             username="admin", email="admin@example.com", password="adminpass"
         )
         # a normal user with a profile
-        self.uploader = User.objects.create_user(
-            username="u1", password="u1pass"
-        )
+        self.uploader = User.objects.create_user(username="u1", password="u1pass")
         Profile.objects.filter(user=self.uploader).update(role="uploader")
 
         # create a model and a version so the stats page has data

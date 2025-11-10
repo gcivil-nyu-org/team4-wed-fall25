@@ -23,7 +23,9 @@ class UtilsTests(TestCase):
 
     def test_sha256_uploaded_file(self):
         # create a Django-ish uploaded file so .chunks() exists
-        uploaded = SimpleUploadedFile("hello.txt", self.content, content_type="text/plain")
+        uploaded = SimpleUploadedFile(
+            "hello.txt", self.content, content_type="text/plain"
+        )
         digest = sha256_uploaded_file(uploaded)
         self.assertEqual(digest, self.expected_hash)
 
@@ -39,10 +41,6 @@ class UtilsTests(TestCase):
         finally:
             os.remove(path)
 
-from note2webapp.utils import (
-    sha256_uploaded_file,
-    sha256_file_path,
-)
 
 class UtilsMoreTests(TestCase):
     def test_sha256_uploaded_file_works_with_django_file(self):

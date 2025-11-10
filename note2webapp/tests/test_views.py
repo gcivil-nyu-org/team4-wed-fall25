@@ -25,9 +25,7 @@ class ViewsHighCoverageTests(TestCase):
         Profile.objects.filter(user=self.reviewer).update(role="reviewer")
 
         # admin / superuser
-        self.admin = User.objects.create_superuser(
-            "admin", "admin@example.com", "pass"
-        )
+        self.admin = User.objects.create_superuser("admin", "admin@example.com", "pass")
         Profile.objects.filter(user=self.admin).update(role="admin")
 
     # ---------------- AUTH ----------------
@@ -119,9 +117,7 @@ class ViewsHighCoverageTests(TestCase):
     def test_uploader_detail_page(self):
         self.client.login(username="uploader", password="pass")
         upload, _ = self._make_upload_and_version()
-        resp = self.client.get(
-            reverse("dashboard") + f"?page=detail&pk={upload.pk}"
-        )
+        resp = self.client.get(reverse("dashboard") + f"?page=detail&pk={upload.pk}")
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "m1")
 
@@ -154,7 +150,9 @@ class ViewsHighCoverageTests(TestCase):
             def __init__(self, *args, **kwargs):
                 self.cleaned_data = {
                     "model_file": SimpleUploadedFile("m2.pt", b"pt-new"),
-                    "predict_file": SimpleUploadedFile("p2.py", b"def predict2(): pass"),
+                    "predict_file": SimpleUploadedFile(
+                        "p2.py", b"def predict2(): pass"
+                    ),
                     "schema_file": SimpleUploadedFile("s2.json", b'{"x": 1}'),
                     "category": "sentiment",
                     "information": "info",
@@ -195,9 +193,7 @@ class ViewsHighCoverageTests(TestCase):
         )
 
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(
-            ModelVersion.objects.filter(upload=upload, tag="v2").exists()
-        )
+        self.assertTrue(ModelVersion.objects.filter(upload=upload, tag="v2").exists())
 
     # ---------------- VERSION ACTIONS ----------------
 

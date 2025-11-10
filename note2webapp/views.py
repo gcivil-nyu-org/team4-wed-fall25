@@ -74,7 +74,7 @@ def login_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
         user = authenticate(request, username=username, password=password)
-        
+
         if user is not None:
             login(request, user)
 
@@ -84,17 +84,17 @@ def login_view(request):
                 if prof.role != "admin":
                     prof.role = "admin"
                     prof.save()
-                
+
                 # Use different session key for admin
                 request.session.set_expiry(3600)  # 1 hour for admins
-            
+
             # Redirect based on role
             if hasattr(user, "profile") and user.profile.role == "reviewer":
                 return redirect("reviewer_dashboard")
             return redirect("dashboard")
         else:
             messages.error(request, "Invalid username or password.")
-    
+
     return render(request, "note2webapp/login.html")
 
 
@@ -730,7 +730,9 @@ def test_model_cpu(request, version_id):
                     result = test_model_on_cpu(version, parsed)
 
                 else:
-                    parse_error = "Top-level JSON must be either an object {...} or a list [...]."
+                    parse_error = (
+                        "Top-level JSON must be either an object {...} or a list [...]."
+                    )
 
             except json.JSONDecodeError as e:
                 raw_msg = str(e)
@@ -739,7 +741,7 @@ def test_model_cpu(request, version_id):
 
                 if raw_msg.startswith("Extra data"):
                     friendly = (
-                        'Your JSON has extra data. Did you forget to wrap it in { ... } ? '
+                        "Your JSON has extra data. Did you forget to wrap it in { ... } ? "
                         'Example: {"text": "Party"}'
                     )
                 elif raw_msg.startswith(
@@ -747,14 +749,14 @@ def test_model_cpu(request, version_id):
                 ):
                     friendly = 'Invalid JSON: Property names must be in double quotes. Example: {"text": "Hello"}'
                 elif raw_msg.startswith("Expecting value") and stripped.startswith("{"):
+                    friendly = 'Invalid JSON: String values must be in double quotes. Example: {"text": "Hello"}'
+                elif (
+                    raw_msg.startswith("Expecting value")
+                    and not stripped.startswith("{")
+                    and not stripped.startswith("[")
+                ):
                     friendly = (
-                        'Invalid JSON: String values must be in double quotes. Example: {"text": "Hello"}'
-                    )
-                elif raw_msg.startswith("Expecting value") and not stripped.startswith(
-                    "{"
-                ) and not stripped.startswith("["):
-                    friendly = (
-                        'JSON must start with { ... } (object) or [ ... ] (list). '
+                        "JSON must start with { ... } (object) or [ ... ] (list). "
                         'Example: {"text": "Hello"}'
                     )
                 elif raw_msg.startswith("Unterminated string starting at"):

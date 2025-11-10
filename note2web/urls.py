@@ -21,6 +21,6 @@ from django.conf.urls.static import static
 from note2webapp.admin import admin_site
 
 urlpatterns = [
-    path('admin/', admin_site.urls),
-    path('', include('note2webapp.urls')),
+    path("admin/", admin_site.urls),
+    path("", include("note2webapp.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

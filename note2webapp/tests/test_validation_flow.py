@@ -3,6 +3,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from note2webapp.models import ModelUpload, ModelVersion
 
+
 class ModelValidationFlowTests(TestCase):
     def setUp(self):
         self.client = Client()

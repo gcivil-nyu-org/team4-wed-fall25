@@ -21,9 +21,7 @@ class ViewsFlowExtraTests(TestCase):
         Profile.objects.filter(user=self.reviewer).update(role="reviewer")
 
         # admin (superuser)
-        self.admin = User.objects.create_superuser(
-            "admin", "admin@example.com", "pass"
-        )
+        self.admin = User.objects.create_superuser("admin", "admin@example.com", "pass")
         # make sure admin has a profile too
         Profile.objects.get_or_create(user=self.admin, defaults={"role": "admin"})
 
