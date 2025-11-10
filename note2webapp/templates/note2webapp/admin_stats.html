@@ -1,0 +1,360 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Statistics Dashboard · Note2Web Admin{% endblock %}
+
+{% block extrastyle %}
+<style>
+    body {
+        background: #0f172a;
+    }
+    .stats-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 30px 24px 60px;
+    }
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #94a3b8;
+        text-decoration: none;
+        font-size: 14px;
+        margin-bottom: 16px;
+    }
+    .back-link:hover { color: #fff; }
+    .stats-header { margin-bottom: 32px; }
+    .stats-header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .stats-header p { color: #94a3b8; margin: 0; }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+    .stat-card {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        position: relative;
+        transition: .25s;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(99, 102, 241, 0.5);
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(99, 102, 241, .2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+    .stat-label {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #94a3b8;
+        margin-bottom: 6px;
+    }
+    .stat-value {
+        font-size: 36px;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .charts-section { margin-bottom: 32px; }
+    .section-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+    .chart-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        min-height: 260px;
+    }
+    .chart-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+    .chart-title { color: #fff; font-weight: 600; }
+    .chart-badge {
+        background: rgba(99, 102, 241, .2);
+        color: #a5b4fc;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        text-transform: uppercase;
+    }
+
+    .table-card {
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .table-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, .1);
+    }
+    .table-header h3 { margin: 0; color: #fff; font-size: 18px; }
+    .stats-table { width: 100%; border-collapse: collapse; }
+    .stats-table th, .stats-table td { padding: 14px 24px; }
+    .stats-table th {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .stats-table td { color: #e2e8f0; border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
+    .rank-badge {
+        background: rgba(99, 102, 241, .2);
+        color: #a5b4fc;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .badge-success { background: rgba(34,197,94,.15); color: #4ade80; }
+    .badge-info { background: rgba(59,130,246,.15); color: #60a5fa; }
+    .badge-warning { background: rgba(234,179,8,.15); color: #fbbf24; }
+
+    @media (max-width: 768px) {
+        .charts-grid { grid-template-columns: 1fr; }
+        .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-container">
+    <a href="{% url 'admin:index' %}" class="back-link">← Back to admin</a>
+
+    <div class="stats-header">
+        <h1>📊 Statistics Dashboard</h1>
+        <p>Real-time overview of models, versions, and users.</p>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total models</div>
+            <div class="stat-value">{{ total_uploads }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total versions</div>
+            <div class="stat-value">{{ total_versions }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active versions</div>
+            <div class="stat-value">{{ active_versions }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Inactive versions</div>
+            <div class="stat-value">{{ inactive_versions }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Deleted versions</div>
+            <div class="stat-value">{{ deleted_versions }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total users</div>
+            <div class="stat-value">{{ total_users }}</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-section">
+        <h2 class="section-title">Analytics overview</h2>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">Users by role</span>
+                    <span class="chart-badge">Distribution</span>
+                </div>
+                <div style="height: 210px;">
+                    <canvas id="roleChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">Versions by status</span>
+                    <span class="chart-badge">Overview</span>
+                </div>
+                <div style="height: 210px;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">Versions by category</span>
+                    <span class="chart-badge">Breakdown</span>
+                </div>
+                <div style="height: 210px;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top uploaders -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3>⚡ Top contributors</h3>
+        </div>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th style="width:80px;">Rank</th>
+                    <th>Username</th>
+                    <th>Models uploaded</th>
+                    <th style="width:140px;">Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for uploader in top_uploaders %}
+                <tr>
+                    <td><span class="rank-badge">#{{ forloop.counter }}</span></td>
+                    <td>{{ uploader.user__username }}</td>
+                    <td>{{ uploader.c }}</td>
+                    <td>
+                        {% if uploader.c >= 10 %}
+                            <span class="badge badge-success">Expert</span>
+                        {% elif uploader.c >= 5 %}
+                            <span class="badge badge-info">Active</span>
+                        {% else %}
+                            <span class="badge badge-warning">New</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">
+                        No uploads yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+  // always turn Django output into a string, then parse
+  const roleData = JSON.parse('{{ role_counts_json|default:"[]"|escapejs }}');
+  const statusData = JSON.parse('{{ version_status_counts_json|default:"[]"|escapejs }}');
+  const categoryData = JSON.parse('{{ version_category_counts_json|default:"[]"|escapejs }}');
+
+  const baseChartOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#cbd5f5' }
+      }
+    }
+  };
+
+  // Users by role
+  if (document.getElementById('roleChart')) {
+    new Chart(document.getElementById('roleChart'), {
+      type: 'doughnut',
+      data: {
+        labels: roleData.map(r => r.role.charAt(0).toUpperCase() + r.role.slice(1)),
+        datasets: [{
+          data: roleData.map(r => r.c),
+          backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#22c55e'],
+          borderWidth: 0
+        }]
+      },
+      options: baseChartOpts
+    });
+  }
+
+  // Versions by status
+  if (document.getElementById('statusChart')) {
+    new Chart(document.getElementById('statusChart'), {
+      type: 'pie',
+      data: {
+        labels: statusData.map(s => s.status.toUpperCase()),
+        datasets: [{
+          data: statusData.map(s => s.c),
+          backgroundColor: ['#22c55e', '#f97316', '#ef4444', '#6366f1'],
+          borderWidth: 0
+        }]
+      },
+      options: baseChartOpts
+    });
+  }
+
+  // Versions by category
+  if (document.getElementById('categoryChart')) {
+    new Chart(document.getElementById('categoryChart'), {
+      type: 'bar',
+      data: {
+        labels: categoryData.map(c => c.category.charAt(0).toUpperCase() + c.category.slice(1)),
+        datasets: [{
+          label: 'Versions',
+          data: categoryData.map(c => c.c),
+          backgroundColor: '#6366f1',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        ...baseChartOpts,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: { color: '#cbd5f5' },
+            grid: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#cbd5f5', stepSize: 1 },
+            grid: { color: 'rgba(148,163,184,0.1)' }
+          }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

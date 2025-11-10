@@ -60,7 +60,9 @@ ROOT_URLCONF = "note2web.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            os.path.join(BASE_DIR, "note2webapp", "templates"),  # Add this line
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

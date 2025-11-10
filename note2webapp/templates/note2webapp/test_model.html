@@ -25,6 +25,13 @@
         <p class="tm-subtitle">Run inference tests on your model version</p>
     </div>
 
+    {# show JSON / parsing error here #}
+    {% if parse_error %}
+    <div class="tm-error-banner">
+        {{ parse_error }}
+    </div>
+    {% endif %}
+
     <!-- model info block -->
     <div class="tm-info-card">
         <div class="tm-info-grid">
@@ -68,7 +75,7 @@
                         name="input_data"
                         rows="10"
                         class="tm-textarea"
-                    >{{ input_json|default:'' }}</textarea>
+                    >{{ last_input|default:'' }}</textarea>
                 </div>
                 <div class="tm-footer">
                     <button type="submit" class="tm-submit-btn">Run Test</button>
@@ -79,17 +86,16 @@
         <!-- RIGHT: result -->
         <div class="tm-result-card">
             <h5 class="tm-section-title">Test Result</h5>
-            {% if result.status == "ok" %}
+            {% if result.status == "ok" or result.batch %}
                 <div class="tm-result-success">
                     <div class="tm-result-header">
                         <span>Success</span>
                     </div>
-                    {% if result.output_list %}
-                        {% for item in result.output_list %}
-                            <pre class="tm-result-output">{{ item|safe }}</pre>
-                        {% endfor %}
+                    {# if your view returns batch outputs #}
+                    {% if result.outputs %}
+                        <pre class="tm-result-output">{{ result.outputs|safe }}</pre>
                     {% else %}
-                        <pre class="tm-result-output">{{ result.output|safe }}</pre>
+                        <pre class="tm-result-output">{{ result|safe }}</pre>
                     {% endif %}
                 </div>
             {% else %}
@@ -97,7 +103,7 @@
                     <div class="tm-result-header">
                         <span>Error</span>
                     </div>
-                    <pre class="tm-result-output">{{ result.error|safe }}</pre>
+                    <pre class="tm-result-output">{{ result.error|default:result|safe }}</pre>
                 </div>
             {% endif %}
         </div>
@@ -123,7 +129,7 @@
                     rows="8"
                     class="tm-textarea"
                     placeholder='{"text": "The food was delicious and service was excellent"}'
-                >{{ input_json|default:'' }}</textarea>
+                >{{ last_input|default:'' }}</textarea>
             </div>
             <div class="tm-footer">
                 <button type="submit" class="tm-submit-btn">Run Test</button>
@@ -141,17 +147,14 @@
     border: 1px solid rgba(255,255,255,0.04);
     border-radius: 16px;
     padding: 24px;
-    margin: 0 auto;
-    margin-bottom: 40px;
+    margin: 0 auto 40px;
     color: #fff;
     box-shadow: 0 32px 64px rgba(0,0,0,0.4);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* top bar */
-.tm-top-bar {
-    margin-bottom: 20px;
-}
+.tm-top-bar { margin-bottom: 20px; }
 .tm-back-btn {
     display: inline-flex;
     align-items: center;
@@ -166,9 +169,7 @@
     text-decoration: none;
     transition: all .15s ease;
 }
-.tm-back-btn:hover {
-    background-color: rgba(255,255,255,0.07);
-}
+.tm-back-btn:hover { background-color: rgba(255,255,255,0.07); }
 
 /* header */
 .tm-header {
@@ -177,14 +178,18 @@
     border-bottom: 1px solid rgba(255,255,255,0.05);
     margin-bottom: 20px;
 }
-.tm-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 6px 0;
-}
-.tm-subtitle {
-    font-size: 0.9rem;
-    color: #8f96a3;
+.tm-title { font-size: 1.5rem; font-weight: 600; margin: 0 0 6px 0; }
+.tm-subtitle { font-size: 0.9rem; color: #8f96a3; }
+
+/* error banner */
+.tm-error-banner {
+    background: rgba(248,113,113,.1);
+    border: 1px solid rgba(248,113,113,.25);
+    color: #fee2e2;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: .85rem;
 }
 
 /* info strip */
@@ -200,20 +205,9 @@
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 16px;
 }
-.tm-info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.tm-info-label {
-    font-size: 0.75rem;
-    color: #a3a8b3;
-}
-.tm-info-value {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #fff;
-}
+.tm-info-item { display: flex; flex-direction: column; gap: 2px; }
+.tm-info-label { font-size: 0.75rem; color: #a3a8b3; }
+.tm-info-value { font-size: 0.9rem; font-weight: 600; color: #fff; }
 
 /* form card */
 .tm-form-card {
@@ -231,22 +225,10 @@
     border-bottom: 1px solid rgba(255,255,255,0.03);
     padding-bottom: 8px;
 }
-.tm-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.tm-label {
-    font-size: 0.8rem;
-    color: #fff;
-}
-.tm-required {
-    color: #ff6b6b;
-}
-.tm-hint {
-    font-size: 0.75rem;
-    color: #9ca3af;
-}
+.tm-field { display: flex; flex-direction: column; gap: 6px; }
+.tm-label { font-size: 0.8rem; color: #fff; }
+.tm-required { color: #ff6b6b; }
+.tm-hint { font-size: 0.75rem; color: #9ca3af; }
 
 /* textarea */
 .tm-textarea {
@@ -266,9 +248,7 @@
 }
 
 /* button */
-.tm-footer {
-    margin-top: 16px;
-}
+.tm-footer { margin-top: 16px; }
 .tm-submit-btn {
     width: 100%;
     background: linear-gradient(90deg, #3b82ff 0%, #2154ff 100%);
@@ -293,16 +273,9 @@
     border-radius: 12px;
     padding: 18px 18px 22px;
 }
-.tm-result-header {
-    font-weight: 600;
-    margin-bottom: 12px;
-}
-.tm-result-success .tm-result-header {
-    color: #4ade80;
-}
-.tm-result-error .tm-result-header {
-    color: #f87171;
-}
+.tm-result-header { font-weight: 600; margin-bottom: 12px; }
+.tm-result-success .tm-result-header { color: #4ade80; }
+.tm-result-error .tm-result-header { color: #f87171; }
 .tm-result-output {
     background-color: #000;
     border-radius: 8px;
@@ -313,12 +286,8 @@
     white-space: pre-wrap;
     word-break: break-word;
 }
-.tm-result-success .tm-result-output {
-    color: #4ade80;
-}
-.tm-result-error .tm-result-output {
-    color: #fca5a5;
-}
+.tm-result-success .tm-result-output { color: #4ade80; }
+.tm-result-error .tm-result-output { color: #fca5a5; }
 
 /* split layout after run */
 .tm-body-split {
@@ -329,12 +298,8 @@
 
 /* responsive */
 @media (max-width: 900px) {
-    .tm-body-split {
-        grid-template-columns: 1fr;
-    }
-    .test-model-shell {
-        padding: 16px;
-    }
+    .tm-body-split { grid-template-columns: 1fr; }
+    .test-model-shell { padding: 16px; }
 }
 </style>
 {% endblock %}

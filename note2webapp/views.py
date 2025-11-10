@@ -14,6 +14,10 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django import forms
 
+# for admin stats
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Count
+
 from .forms import UploadForm, VersionForm
 from .models import ModelUpload, ModelVersion, Profile
 from .utils import (
@@ -52,6 +56,7 @@ def signup_view(request):
 
         try:
             user = User.objects.create_user(username=username, password=password1)
+            # normal signups become uploaders
             Profile.objects.create(user=user, role="uploader")
             group, _ = Group.objects.get_or_create(name="ModelUploader")
             user.groups.add(group)
@@ -69,13 +74,27 @@ def login_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
         user = authenticate(request, username=username, password=password)
+
         if user is not None:
             login(request, user)
+
+            # Ensure superusers have admin role
+            if user.is_superuser:
+                prof, _ = Profile.objects.get_or_create(user=user)
+                if prof.role != "admin":
+                    prof.role = "admin"
+                    prof.save()
+
+                # Use different session key for admin
+                request.session.set_expiry(3600)  # 1 hour for admins
+
+            # Redirect based on role
             if hasattr(user, "profile") and user.profile.role == "reviewer":
                 return redirect("reviewer_dashboard")
             return redirect("dashboard")
         else:
             messages.error(request, "Invalid username or password.")
+
     return render(request, "note2webapp/login.html")
 
 
@@ -90,12 +109,23 @@ def logout_view(request):
 # ---------------------------------------------------------
 @login_required
 def dashboard(request):
+    """
+    Decide where to send the user.
+    - Django staff/superuser: our nice stats page
+    - uploader: uploader dashboard
+    - reviewer: reviewer dashboard
+    """
+    if request.user.is_staff:
+        return redirect("admin_stats")
+
     role = getattr(request.user.profile, "role", "uploader")
     if role == "uploader":
         return model_uploader_dashboard(request)
     elif role == "reviewer":
         return reviewer_dashboard(request)
-    return render(request, "note2webapp/other_dashboard.html")
+
+    # fallback
+    return model_uploader_dashboard(request)
 
 
 @login_required
@@ -241,11 +271,9 @@ def model_uploader_dashboard(request):
                                 duplicate_found = True
                                 break
                     except Exception:
-                        # if any file is missing, just skip that version
                         continue
 
                 if duplicate_found:
-                    # we set both a Django message and a context flag
                     msg_text = (
                         "An identical model/predict/schema bundle is already present. "
                         "Please upload a new version or change the files."
@@ -670,35 +698,11 @@ def edit_version_information(request, version_id):
 # ---------------------------------------------------------
 @login_required
 def test_model_cpu(request, version_id):
-    """
-    Show test UI and let user run inference on a version.
-    Keeps textarea content after POST.
-    Supports:
-      - single object: {"text": "..."}
-      - list of objects: [{"text": "..."}, {"text": "..."}]
-    """
     version = get_object_or_404(ModelVersion, id=version_id)
-
-    # try to prefill from schema
-    schema_json = None
-    if version.schema_file:
-        try:
-            with open(version.schema_file.path, "r") as f:
-                schema_json = json.load(f)
-        except Exception:
-            schema_json = None
 
     result = None
     parse_error = None
-
-    # default textarea content
-    if schema_json and isinstance(schema_json, dict):
-        if "input" in schema_json and isinstance(schema_json["input"], dict):
-            last_input = json.dumps(schema_json["input"], indent=2)
-        else:
-            last_input = json.dumps(schema_json, indent=2)
-    else:
-        last_input = ""
+    last_input = ""
 
     if request.method == "POST":
         raw_input = request.POST.get("input_data", "").strip()
@@ -715,31 +719,58 @@ def test_model_cpu(request, version_id):
                             outputs.append(
                                 {
                                     "status": "error",
-                                    "error": "Each item in the list must be a JSON object",
+                                    "error": 'Each item in the list must be a JSON object like {"text": "..."}',
                                 }
                             )
                         else:
                             outputs.append(test_model_on_cpu(version, item))
-                    result = {
-                        "status": "ok",
-                        "batch": True,
-                        "outputs": outputs,
-                    }
+                    result = {"status": "ok", "batch": True, "outputs": outputs}
+
                 elif isinstance(parsed, dict):
                     result = test_model_on_cpu(version, parsed)
+
                 else:
                     parse_error = (
-                        "Top-level JSON must be an object or a list of objects."
+                        "Top-level JSON must be either an object {...} or a list [...]."
                     )
+
             except json.JSONDecodeError as e:
-                parse_error = f"Invalid JSON: {str(e)}"
+                raw_msg = str(e)
+                stripped = raw_input.lstrip()
+                friendly = raw_msg
+
+                if raw_msg.startswith("Extra data"):
+                    friendly = (
+                        "Your JSON has extra data. Did you forget to wrap it in { ... } ? "
+                        'Example: {"text": "Party"}'
+                    )
+                elif raw_msg.startswith(
+                    "Expecting property name enclosed in double quotes"
+                ):
+                    friendly = 'Invalid JSON: Property names must be in double quotes. Example: {"text": "Hello"}'
+                elif raw_msg.startswith("Expecting value") and stripped.startswith("{"):
+                    friendly = 'Invalid JSON: String values must be in double quotes. Example: {"text": "Hello"}'
+                elif (
+                    raw_msg.startswith("Expecting value")
+                    and not stripped.startswith("{")
+                    and not stripped.startswith("[")
+                ):
+                    friendly = (
+                        "JSON must start with { ... } (object) or [ ... ] (list). "
+                        'Example: {"text": "Hello"}'
+                    )
+                elif raw_msg.startswith("Unterminated string starting at"):
+                    friendly = "You have an opening quote without a closing quote."
+                elif raw_msg.startswith("Expecting ',' delimiter"):
+                    friendly = "You may be missing a comma between fields."
+
+                parse_error = friendly
 
     return render(
         request,
         "note2webapp/test_model.html",
         {
             "version": version,
-            "schema_json": schema_json,
             "result": result,
             "last_input": last_input,
             "parse_error": parse_error,
@@ -752,10 +783,6 @@ def test_model_cpu(request, version_id):
 # ---------------------------------------------------------
 @login_required
 def run_model_from_path(request):
-    """
-    Very small endpoint: POST model_path, predict_path, input_data
-    and we'll load predict.py dynamically and run it.
-    """
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
@@ -787,9 +814,6 @@ def run_model_from_path(request):
 
 @login_required
 def run_model_by_version_id(request, version_id):
-    """
-    POST input_data, look up version, run test_model_on_cpu
-    """
     version = get_object_or_404(ModelVersion, id=version_id)
 
     if request.method != "POST":
@@ -803,3 +827,79 @@ def run_model_by_version_id(request, version_id):
 
     result = test_model_on_cpu(version, input_data)
     return JsonResponse(result)
+
+
+# ---------------------------------------------------------
+# ADMIN STATS VIEW  ( /admin/stats/ )
+# ---------------------------------------------------------
+@staff_member_required
+def admin_stats(request):
+    # top counts
+    total_uploads = ModelUpload.objects.count()
+    total_versions = ModelVersion.objects.count()
+    total_users = User.objects.count()
+
+    # version breakdown
+    active_versions = ModelVersion.objects.filter(
+        is_deleted=False, is_active=True, status="PASS"
+    ).count()
+    deleted_versions = ModelVersion.objects.filter(is_deleted=True).count()
+    inactive_versions = ModelVersion.objects.filter(
+        is_deleted=False, status="PASS", is_active=False
+    ).count()
+
+    # superusers shown as admin in the pie chart
+    superusers_count = User.objects.filter(is_superuser=True).count()
+
+    # roles for non-superusers
+    role_rows = list(
+        Profile.objects.filter(user__is_superuser=False)
+        .values("role")
+        .annotate(c=Count("id"))
+        .order_by("role")
+    )
+
+    # users without profile (non-superuser)
+    no_profile_count = User.objects.filter(
+        profile__isnull=True, is_superuser=False
+    ).count()
+    if no_profile_count:
+        role_rows.append({"role": "no-profile", "c": no_profile_count})
+
+    # add admin bucket
+    if superusers_count:
+        role_rows.append({"role": "admin", "c": superusers_count})
+
+    # versions by status
+    status_rows = list(
+        ModelVersion.objects.values("status").annotate(c=Count("id")).order_by("status")
+    )
+
+    # versions by category
+    category_rows = list(
+        ModelVersion.objects.values("category")
+        .annotate(c=Count("id"))
+        .order_by("category")
+    )
+
+    # top uploaders
+    top_uploaders = list(
+        ModelUpload.objects.values("user__username")
+        .annotate(c=Count("id"))
+        .order_by("-c")[:10]
+    )
+
+    context = {
+        "total_uploads": total_uploads,
+        "total_versions": total_versions,
+        "total_users": total_users,
+        "active_versions": active_versions,
+        "deleted_versions": deleted_versions,
+        "inactive_versions": inactive_versions,
+        "role_counts_json": json.dumps(role_rows),
+        "version_status_counts_json": json.dumps(status_rows),
+        "version_category_counts_json": json.dumps(category_rows),
+        "top_uploaders_json": json.dumps(top_uploaders),
+        "top_uploaders": top_uploaders,
+    }
+    return render(request, "note2webapp/admin_stats.html", context)

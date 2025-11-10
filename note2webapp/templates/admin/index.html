@@ -1,0 +1,42 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<!-- Stats Dashboard Card -->
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3); border: 1px solid rgba(255,255,255,0.1);">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+        <!-- Icon & Content -->
+        <div style="display: flex; align-items: center; gap: 18px; flex: 1;">
+            <!-- Icon -->
+            <div style="background: rgba(255,255,255,0.2); padding: 16px; border-radius: 12px; backdrop-filter: blur(10px);">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M3 3v18h18"></path>
+                    <path d="M18 17V9"></path>
+                    <path d="M13 17V5"></path>
+                    <path d="M8 17v-3"></path>
+                </svg>
+            </div>
+            
+            <!-- Content -->
+            <div>
+                <h2 style="color: white; margin: 0 0 6px 0; font-size: 22px; font-weight: 600;">
+                    Statistics Dashboard
+                </h2>
+                <p style="color: rgba(255,255,255,0.85); margin: 0; font-size: 14px; line-height: 1.5;">
+                    Track platform metrics, user activity, model performance, and more
+                </p>
+            </div>
+        </div>
+        
+        <!-- Button - Smaller -->
+        <a href="/admin/stats/" style="background: white; color: #667eea; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap;">
+            <span>View Dashboard</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </a>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}
