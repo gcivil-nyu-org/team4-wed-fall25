@@ -10,10 +10,13 @@ from django.db.models import Max
 # -----------------------
 class Profile(models.Model):
     ROLE_CHOICES = [
+        ("admin", "Admin"),
         ("uploader", "Model Uploader"),
         ("reviewer", "Model Reviewer"),
     ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # default stays "uploader" for normal signups
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="uploader")
 
     def __str__(self):
@@ -22,19 +25,27 @@ class Profile(models.Model):
 
 @receiver(post_save, sender=User)
 def create_or_update_profile(sender, instance, created, **kwargs):
-    """Automatically create or update Profile when User is created/updated"""
+    """
+    Ensure every User has a Profile.
+    If the user is staff/superuser, force role="admin".
+    """
     if created:
-        Profile.objects.create(user=instance)
+        profile = Profile.objects.create(user=instance)
     else:
-        # handle users created before profile
-        if hasattr(instance, "profile"):
-            instance.profile.save()
-        else:
-            Profile.objects.create(user=instance)
+        profile, _ = Profile.objects.get_or_create(user=instance)
+
+    # force admin role for Django admins
+    if instance.is_superuser or instance.is_staff:
+        if profile.role != "admin":
+            profile.role = "admin"
+            profile.save()
+    else:
+        # just save whatever non-admin role it has
+        profile.save()
 
 
 # -----------------------
-# MODEL UPLOAD + VERSION
+# MODEL UPLOAD
 # -----------------------
 class ModelUpload(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="uploads")
@@ -45,9 +56,14 @@ class ModelUpload(models.Model):
         return self.name
 
 
+# -----------------------
+# MODEL VERSION
+# -----------------------
 class ModelVersion(models.Model):
     upload = models.ForeignKey(
-        "ModelUpload", on_delete=models.CASCADE, related_name="versions"
+        ModelUpload,
+        on_delete=models.CASCADE,
+        related_name="versions",
     )
 
     # uploaded files
@@ -58,7 +74,6 @@ class ModelVersion(models.Model):
     tag = models.CharField(max_length=100)
     information = models.TextField(blank=True, null=True)
 
-    # ONLY these 3 categories now
     CATEGORY_CHOICES = [
         ("sentiment", "Sentiment"),
         ("recommendation", "Recommendation"),
@@ -72,21 +87,26 @@ class ModelVersion(models.Model):
 
     status = models.CharField(
         max_length=20,
-        choices=[("PENDING", "Pending"), ("PASS", "Pass"), ("FAIL", "Fail")],
+        choices=[
+            ("PENDING", "Pending"),
+            ("PASS", "Pass"),
+            ("FAIL", "Fail"),
+        ],
         default="PENDING",
     )
+
     is_active = models.BooleanField(default=False)
     log = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Soft delete
+    # soft delete
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    # Permanent version number per upload
+    # per-upload version number
     version_number = models.IntegerField(default=1)
 
-    # ✅ NEW: hashes for dedup
+    # hashes for dedupe
     model_hash = models.CharField(max_length=64, blank=True, null=True)
     predict_hash = models.CharField(max_length=64, blank=True, null=True)
     schema_hash = models.CharField(max_length=64, blank=True, null=True)
@@ -96,7 +116,7 @@ class ModelVersion(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-        # Auto-generate version number for new versions only
+        # assign next version number only on first save
         if not self.pk:
             last_version = ModelVersion.objects.filter(upload=self.upload).aggregate(
                 Max("version_number")
@@ -104,20 +124,17 @@ class ModelVersion(models.Model):
             self.version_number = (last_version or 0) + 1
         super().save(*args, **kwargs)
 
-    def get_version_number(self):
-        return self.version_number
-
     def __str__(self):
         try:
-            version_str = f"v{self.version_number}"
-            upload_name = getattr(self.upload, "name", "Unknown Upload")
-            return f"{upload_name} - {version_str} ({self.status})"
+            return f"{self.upload.name} - v{self.version_number} ({self.status})"
         except Exception:
             return f"ModelVersion (unsaved) - {self.status}"
 
+    def get_version_number(self):
+        return self.version_number
+
     def get_media_dir(self):
         """
-        Logical place on disk:
         media/<category>/<upload.name>/v<version_number>/
         """
         safe_name = getattr(self.upload, "name", f"upload-{self.upload_id}")

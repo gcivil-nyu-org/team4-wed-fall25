@@ -491,7 +491,7 @@ function getCookie(name) {
     <hr class="versions-divider">
 
     {% for version in versions %}
-      <!-- FIXED: Version header with badges on the right in same line -->
+      <!-- Header row -->
       <div class="version-row-header">
         <strong class="version-number {% if version.is_deleted %}version-deleted{% endif %}">
           v{{ version.version_number }}
@@ -513,6 +513,13 @@ function getCookie(name) {
             <span class="badge bg-danger">Failed</span>
           {% else %}
             <span class="badge bg-warning text-dark">Pending</span>
+          {% endif %}
+
+          {# 👇 ONLY show Test if NOT deleted and PASSED #}
+          {% if not version.is_deleted and version.status == "PASS" %}
+            <a href="{% url 'test_model_cpu' version.id %}" class="badge badge-test" style="background:#2563eb;">
+              Test
+            </a>
           {% endif %}
         </div>
       </div>
@@ -551,7 +558,7 @@ function getCookie(name) {
   margin-bottom: 20px;
 }
 
-/* PROPER BUTTON STYLES */
+/* Back */
 .detail-back-btn {
   display: inline-flex;
   align-items: center;
@@ -612,7 +619,7 @@ function getCookie(name) {
   flex-shrink: 0;
 }
 
-/* Manage Versions button - gray */
+/* gray btn */
 .detail-manage-btn {
   display: inline-flex;
   align-items: center;
@@ -634,7 +641,7 @@ function getCookie(name) {
   color: #fff;
 }
 
-/* New Version button - blue primary */
+/* blue btn */
 .detail-new-version-btn {
   display: inline-flex;
   align-items: center;
@@ -678,7 +685,6 @@ function getCookie(name) {
   margin:0 0 16px 0;
 }
 
-/* FIXED: Version row header - single line with badges on right */
 .version-row-header {
   display: flex;
   justify-content: space-between;
@@ -705,6 +711,16 @@ function getCookie(name) {
   align-items: center;
 }
 
+/* test badge */
+.badge-test {
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-decoration: none;
+  color: #fff !important;
+}
+
 .version-log-block {
   background-color:#000;
   border-radius:8px;
@@ -722,7 +738,6 @@ function getCookie(name) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* Log color classes */
 .log-success {
   color: #4ade80;
 }
@@ -842,7 +857,6 @@ function getCookie(name) {
     <section class="vs-card">
       <div class="vs-section-title">Version Details</div>
 
-      <!-- FIXED: Added proper spacing with grid layout -->
       <div class="vs-metadata-grid">
         <div class="vs-field-full">
           <label class="vs-label">
@@ -962,14 +976,13 @@ function getCookie(name) {
   gap:20px;
 }
 
-/* FIXED: Metadata grid with proper spacing */
+/* Metadata grid */
 .vs-metadata-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
-/* field blocks */
 .vs-field-full {
   grid-column: 1 / -1;
   display: flex;
@@ -1012,7 +1025,7 @@ function getCookie(name) {
 .vs-hint { margin-bottom:8px; }
 .vs-hint-inline { margin-top:6px; }
 
-/* upload file picker rows */
+/* file box */
 .vs-file-box {
   display:flex;
   align-items:flex-start;
@@ -1063,7 +1076,7 @@ function getCookie(name) {
   min-height:1.4em;
 }
 
-/* inputs / textarea dark theme */
+/* inputs */
 .vs-input,
 .vs-textarea {
   background-color:#1b1d22 !important;
@@ -1082,7 +1095,7 @@ function getCookie(name) {
   border-color:rgba(80,130,255,0.8) !important;
 }
 
-/* submit footer */
+/* footer */
 .vs-footer { margin-top:24px; }
 .vs-submit-btn {
   appearance:none;
@@ -1114,12 +1127,10 @@ function getCookie(name) {
   gap:.5rem;
 }
 
-/* Responsive adjustments */
 @media (max-width: 600px) {
   .vs-metadata-grid {
     grid-template-columns: 1fr;
   }
-  
   .vs-field-half {
     grid-column: 1 / -1;
   }

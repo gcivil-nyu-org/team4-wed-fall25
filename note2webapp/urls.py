@@ -44,4 +44,5 @@ urlpatterns = [
         views.run_model_by_version_id,
         name="run_model_by_version_id",
     ),
+    path('admin/stats/', views.admin_stats, name='admin_stats'),
 ]
