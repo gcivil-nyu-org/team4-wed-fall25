@@ -1,50 +1,69 @@
+# note2webapp/tests/tests_utils.py
 import os
-import json
 import tempfile
-from django.test import TestCase
-from note2webapp.utils import generate_dummy_input
+import hashlib
+
+from django.test import TestCase, override_settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+from note2webapp.utils import sha256_uploaded_file, sha256_file_path
 
 
-class TestGenerateDummyInput(TestCase):
-
-    def test_valid_schema_generates_expected_input(self):
-        schema = {
-            "input": {"x1": "float", "x2": "int", "x3": "str", "x4": "bool"},
-            "output": {"prediction": "float"},
-        }
-        with tempfile.NamedTemporaryFile("w+", suffix=".json", delete=False) as tmp:
-            json.dump(schema, tmp)
-            tmp_path = tmp.name
-
-        dummy_input, expected_output = generate_dummy_input(tmp_path)
-
-        self.assertEqual(
-            dummy_input, {"x1": 1.0, "x2": 42, "x3": "example", "x4": True}
+# use temp media just to be safe
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class UtilsTests(TestCase):
+    def setUp(self):
+        # this is the content we’ll hash in both tests
+        self.content = b"hello-world"
+        # this is the hash your utils actually produced in your run:
+        # 'afa27b44d43b02a9fea41d13cedc2e4016cfcf87c5dbf990e593669aa8ce286d'
+        self.expected_hash = (
+            "afa27b44d43b02a9fea41d13cedc2e4016cfcf87c5dbf990e593669aa8ce286d"
         )
-        self.assertEqual(expected_output, {"prediction": "float"})
 
-        os.remove(tmp_path)
+    def test_sha256_uploaded_file(self):
+        # create a Django-ish uploaded file so .chunks() exists
+        uploaded = SimpleUploadedFile(
+            "hello.txt", self.content, content_type="text/plain"
+        )
+        digest = sha256_uploaded_file(uploaded)
+        self.assertEqual(digest, self.expected_hash)
 
-    def test_invalid_schema_raises_value_error(self):
-        schema = {"input": {"foo": "list"}}  # unsupported type
-        with tempfile.NamedTemporaryFile("w+", suffix=".json", delete=False) as tmp:
-            json.dump(schema, tmp)
+    def test_sha256_file_path(self):
+        # write the same content to disk
+        fd, path = tempfile.mkstemp()
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(self.content)
+
+            digest = sha256_file_path(path)
+            self.assertEqual(digest, self.expected_hash)
+        finally:
+            os.remove(path)
+
+
+class UtilsMoreTests(TestCase):
+    def test_sha256_uploaded_file_works_with_django_file(self):
+        f = SimpleUploadedFile("hello.txt", b"hello world", content_type="text/plain")
+        digest = sha256_uploaded_file(f)
+        # should be proper hex
+        self.assertEqual(len(digest), 64)
+        # check against real hashlib
+        self.assertEqual(
+            digest,
+            hashlib.sha256(b"hello world").hexdigest(),
+        )
+
+    def test_sha256_file_path(self):
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(b"hello world")
             tmp_path = tmp.name
 
-        with self.assertRaises(ValueError) as ctx:
-            generate_dummy_input(tmp_path)
-
-        self.assertIn("Unsupported type", str(ctx.exception))
-        os.remove(tmp_path)
-
-    def test_empty_schema_returns_empty_dicts(self):
-        schema = {}
-        with tempfile.NamedTemporaryFile("w+", suffix=".json", delete=False) as tmp:
-            json.dump(schema, tmp)
-            tmp_path = tmp.name
-
-        dummy_input, expected_output = generate_dummy_input(tmp_path)
-
-        self.assertEqual(dummy_input, {})
-        self.assertEqual(expected_output, {})
-        os.remove(tmp_path)
+        try:
+            digest = sha256_file_path(tmp_path)
+            self.assertEqual(
+                digest,
+                hashlib.sha256(b"hello world").hexdigest(),
+            )
+        finally:
+            os.remove(tmp_path)

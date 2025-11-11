@@ -207,6 +207,9 @@
                     {% endif %}
                 </div>
             </div>
+
+            {# 👇 NEW: show category from backend #}
+            <p class="mb-2">Category: {{ active_version.get_category_display }}</p>
             
             {% if active_version.log %}
                 <div class="rvd-log-block">
