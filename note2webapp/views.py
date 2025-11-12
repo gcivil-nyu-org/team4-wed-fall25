@@ -13,6 +13,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
 from django import forms
+from django.db import transaction, IntegrityError
 
 # for admin stats
 from django.contrib.admin.views.decorators import staff_member_required
@@ -55,13 +56,32 @@ def signup_view(request):
             return render(request, "note2webapp/login.html")
 
         try:
-            user = User.objects.create_user(username=username, password=password1)
-            # normal signups become uploaders
-            Profile.objects.create(user=user, role="uploader")
-            group, _ = Group.objects.get_or_create(name="ModelUploader")
-            user.groups.add(group)
+            with transaction.atomic():
+                user = User.objects.create_user(username=username, password=password1)
+
+                # If a signal already created Profile, this will just fetch it.
+                profile, created = Profile.objects.get_or_create(
+                    user=user, defaults={"role": "uploader"}
+                )
+                # Ensure normal signups end up as uploader (unless something else set it)
+                if profile.role != "uploader" and not user.is_superuser:
+                    profile.role = "uploader"
+                    profile.save(update_fields=["role"])
+
+                group, _ = Group.objects.get_or_create(name="ModelUploader")
+                user.groups.add(group)
+
             messages.success(request, "Account created successfully! Please login.")
             return redirect("login")
+
+        except IntegrityError:
+            # Handles any rare race (double post / parallel signal, etc.)
+            messages.error(
+                request,
+                "Account created but there was a profile setup conflict; please try logging in.",
+            )
+            return render(request, "note2webapp/login.html")
+
         except Exception as e:
             messages.error(request, f"Error creating account: {str(e)}")
             return render(request, "note2webapp/login.html")
