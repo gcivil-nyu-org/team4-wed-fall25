@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     "note2webapp",
     "widget_tweaks",
 ]
@@ -76,6 +77,38 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "note2web.wsgi.application"
+ASGI_APPLICATION = "note2web.asgi.application"
+
+# Channel layers configuration
+# Use Redis in production (for multi-instance support), InMemory for development
+if os.environ.get("REDIS_URL"):
+    # Production: Use Redis URL (e.g., from ElastiCache)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.environ.get("REDIS_URL")],
+            },
+        },
+    }
+elif os.environ.get("REDIS_HOST"):
+    # Production: Use Redis with host/port
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [
+                    (
+                        os.environ.get("REDIS_HOST", "localhost"),
+                        int(os.environ.get("REDIS_PORT", 6379)),
+                    )
+                ],
+            },
+        },
+    }
+else:
+    # Development: Use in-memory channel layer
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 
 # Database

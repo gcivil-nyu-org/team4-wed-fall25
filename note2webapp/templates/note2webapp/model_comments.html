@@ -1,0 +1,522 @@
+{% extends 'base.html' %}
+
+
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="row">
+
+        <div class="col-md-12">
+
+            <div class="card mb-4">
+
+                <div class="card-header">
+
+                    <h4>{{ version.upload.name }} - {{ version.tag }}</h4>
+
+                    <p class="mb-0 text-muted">
+
+                        Uploaded by: <strong>{{ version.upload.user.username }}</strong> | 
+
+                        Status: <span class="badge bg-{{ version.status|lower }}">{{ version.status }}</span>
+
+                    </p>
+
+                </div>
+
+                <div class="card-body">
+
+                    {% if version.information %}
+
+                    <p><strong>Model Information:</strong> {{ version.information }}</p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+
+            <div class="card">
+
+                <div class="card-header">
+
+                    <h5>Discussion & Feedback</h5>
+
+                </div>
+
+                <div class="card-body">
+
+                    <!-- Comments Container -->
+
+                    <div id="comments-container" style="max-height: 500px; overflow-y: auto;">
+
+                        {% for comment in comments %}
+
+                        <div class="comment mb-3" id="comment-{{ comment.id }}" data-comment-id="{{ comment.id }}">
+
+                            <div class="d-flex">
+
+                                <div class="flex-shrink-0">
+
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+
+                                         style="width: 40px; height: 40px;">
+
+                                        {{ comment.user.username|slice:":1"|upper }}
+
+                                    </div>
+
+                                </div>
+
+                                <div class="flex-grow-1 ms-3">
+
+                                    <div class="d-flex justify-content-between">
+
+                                        <h6 class="mb-0">
+
+                                            {{ comment.user.username }}
+
+                                            <span class="badge bg-info text-dark ms-2">{{ comment.user.profile.role }}</span>
+
+                                            {% if comment.user == version.upload.user %}
+
+                                            <span class="badge bg-success ms-1">Author</span>
+
+                                            {% endif %}
+
+                                        </h6>
+
+                                        <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+
+                                    </div>
+
+                                    <p class="mb-1 mt-2">{{ comment.content }}</p>
+
+                                    <button class="btn btn-sm btn-link p-0 reply-btn" data-comment-id="{{ comment.id }}">Reply</button>
+
+                                    
+
+                                    <!-- Replies -->
+
+                                    {% if comment.replies.all %}
+
+                                    <div class="replies ms-4 mt-2" id="replies-{{ comment.id }}">
+
+                                        {% for reply in comment.replies.all %}
+
+                                        <div class="reply mb-2 border-start border-2 ps-3">
+
+                                            <div class="d-flex justify-content-between">
+
+                                                <h6 class="mb-0">
+
+                                                    {{ reply.user.username }}
+
+                                                    <span class="badge bg-info text-dark ms-2">{{ reply.user.profile.role }}</span>
+
+                                                    {% if reply.user == version.upload.user %}
+
+                                                    <span class="badge bg-success ms-1">Author</span>
+
+                                                    {% endif %}
+
+                                                </h6>
+
+                                                <small class="text-muted">{{ reply.created_at|date:"M d, Y H:i" }}</small>
+
+                                            </div>
+
+                                            <p class="mb-0 mt-1">{{ reply.content }}</p>
+
+                                        </div>
+
+                                        {% endfor %}
+
+                                    </div>
+
+                                    {% else %}
+
+                                    <div class="replies ms-4 mt-2" id="replies-{{ comment.id }}"></div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <hr>
+
+                        {% empty %}
+
+                        <p class="text-muted text-center">No comments yet. Be the first to comment!</p>
+
+                        {% endfor %}
+
+                    </div>
+
+
+
+                    <!-- Comment Input -->
+
+                    <div class="mt-3">
+
+                        <div id="reply-indicator" class="alert alert-info d-none mb-2">
+
+                            Replying to <strong id="reply-to-user"></strong>
+
+                            <button type="button" class="btn-close float-end" id="cancel-reply"></button>
+
+                        </div>
+
+                        <div class="input-group">
+
+                            <input 
+
+                                id="comment-input" 
+
+                                type="text" 
+
+                                class="form-control" 
+
+                                placeholder="Add a comment..."
+
+                            >
+
+                            <button id="comment-submit" class="btn btn-primary">
+
+                                <span id="submit-text">Comment</span>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script>
+
+    const versionId = "{{ version.id }}";
+
+    const userName = "{{ request.user.username }}";
+
+    const userRole = "{{ request.user.profile.role }}";
+
+    const isAuthor = {{ is_uploader|lower }};
+
+    
+
+    let replyToCommentId = null;
+
+    let replyToUsername = null;
+
+    
+
+    const chatSocket = new WebSocket(
+
+        'ws://' + window.location.host + '/ws/model/' + versionId + '/comments/'
+
+    );
+
+
+
+    chatSocket.onmessage = function(e) {
+
+        const data = JSON.parse(e.data);
+
+        addCommentToUI(data);
+
+    };
+
+
+
+    chatSocket.onclose = function(e) {
+
+        console.error('WebSocket closed unexpectedly');
+
+    };
+
+
+
+    function addCommentToUI(data) {
+
+        const container = data.parent_id 
+
+            ? document.getElementById(`replies-${data.parent_id}`)
+
+            : document.getElementById('comments-container');
+
+        
+
+        if (!container) return;
+
+        
+
+        const isReply = data.parent_id !== null;
+
+        const commentDiv = document.createElement('div');
+
+        commentDiv.className = isReply ? 'reply mb-2 border-start border-2 ps-3' : 'comment mb-3';
+
+        commentDiv.id = `comment-${data.comment_id}`;
+
+        
+
+        const authorBadge = data.username === "{{ version.upload.user.username }}" 
+
+            ? '<span class="badge bg-success ms-1">Author</span>' 
+
+            : '';
+
+        
+
+        commentDiv.innerHTML = `
+
+            <div class="${isReply ? '' : 'd-flex'}">
+
+                ${!isReply ? `
+
+                <div class="flex-shrink-0">
+
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+
+                         style="width: 40px; height: 40px;">
+
+                        ${data.username.charAt(0).toUpperCase()}
+
+                    </div>
+
+                </div>` : ''}
+
+                <div class="${isReply ? '' : 'flex-grow-1 ms-3'}">
+
+                    <div class="d-flex justify-content-between">
+
+                        <h6 class="mb-0">
+
+                            ${data.username}
+
+                            <span class="badge bg-info text-dark ms-2">${data.user_role}</span>
+
+                            ${authorBadge}
+
+                        </h6>
+
+                        <small class="text-muted">${data.timestamp}</small>
+
+                    </div>
+
+                    <p class="mb-${isReply ? '0' : '1'} mt-${isReply ? '1' : '2'}">${data.message}</p>
+
+                    ${!isReply ? `
+
+                    <button class="btn btn-sm btn-link p-0 reply-btn" data-comment-id="${data.comment_id}">Reply</button>
+
+                    <div class="replies ms-4 mt-2" id="replies-${data.comment_id}"></div>
+
+                    ` : ''}
+
+                </div>
+
+            </div>
+
+        `;
+
+        
+
+        container.appendChild(commentDiv);
+
+        
+
+        if (!isReply) {
+
+            const hr = document.createElement('hr');
+
+            container.appendChild(hr);
+
+            
+
+            // Add event listener to new reply button
+
+            commentDiv.querySelector('.reply-btn').addEventListener('click', function() {
+
+                handleReplyClick(this);
+
+            });
+
+        }
+
+        
+
+        container.scrollTop = container.scrollHeight;
+
+    }
+
+
+
+    function handleReplyClick(button) {
+
+        const commentId = button.getAttribute('data-comment-id');
+
+        const commentDiv = document.getElementById(`comment-${commentId}`);
+
+        const username = commentDiv.querySelector('h6').textContent.trim().split('\n')[0].trim();
+
+        
+
+        replyToCommentId = commentId;
+
+        replyToUsername = username;
+
+        
+
+        document.getElementById('reply-indicator').classList.remove('d-none');
+
+        document.getElementById('reply-to-user').textContent = username;
+
+        document.getElementById('submit-text').textContent = 'Reply';
+
+        document.getElementById('comment-input').focus();
+
+    }
+
+
+
+    document.getElementById('cancel-reply').addEventListener('click', function() {
+
+        replyToCommentId = null;
+
+        replyToUsername = null;
+
+        document.getElementById('reply-indicator').classList.add('d-none');
+
+        document.getElementById('submit-text').textContent = 'Comment';
+
+    });
+
+
+
+    // Add event listeners to existing reply buttons
+
+    document.querySelectorAll('.reply-btn').forEach(button => {
+
+        button.addEventListener('click', function() {
+
+            handleReplyClick(this);
+
+        });
+
+    });
+
+
+
+    document.getElementById('comment-input').addEventListener('keypress', function(e) {
+
+        if (e.key === 'Enter') {
+
+            document.getElementById('comment-submit').click();
+
+        }
+
+    });
+
+
+
+    document.getElementById('comment-submit').addEventListener('click', function() {
+
+        const input = document.getElementById('comment-input');
+
+        const message = input.value.trim();
+
+        
+
+        if (message) {
+
+            chatSocket.send(JSON.stringify({
+
+                'message': message,
+
+                'username': userName,
+
+                'parent_id': replyToCommentId
+
+            }));
+
+            
+
+            input.value = '';
+
+            
+
+            // Reset reply state
+
+            if (replyToCommentId) {
+
+                document.getElementById('cancel-reply').click();
+
+            }
+
+        }
+
+    });
+
+</script>
+
+
+
+<style>
+
+    .comment {
+
+        animation: fadeIn 0.3s;
+
+    }
+
+    
+
+    @keyframes fadeIn {
+
+        from { opacity: 0; transform: translateY(-10px); }
+
+        to { opacity: 1; transform: translateY(0); }
+
+    }
+
+    
+
+    .reply-btn {
+
+        font-size: 0.875rem;
+
+        text-decoration: none;
+
+    }
+
+    
+
+    .reply-btn:hover {
+
+        text-decoration: underline;
+
+    }
+
+</style>
+
+{% endblock %}
+

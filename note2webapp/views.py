@@ -20,7 +20,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
 
 from .forms import UploadForm, VersionForm
-from .models import ModelUpload, ModelVersion, Profile
+from .models import ModelUpload, ModelVersion, Profile, ModelComment
 from .utils import (
     validate_model,
     test_model_on_cpu,
@@ -786,6 +786,14 @@ def test_model_cpu(request, version_id):
 
                 parse_error = friendly
 
+    # Get comments for this version
+    comments = ModelComment.objects.filter(
+        model_version=version, parent=None
+    ).prefetch_related("replies", "user__profile")
+
+    # Check if user is uploader
+    is_uploader = version.upload.user == request.user
+
     return render(
         request,
         "note2webapp/test_model.html",
@@ -794,6 +802,8 @@ def test_model_cpu(request, version_id):
             "result": result,
             "last_input": last_input,
             "parse_error": parse_error,
+            "comments": comments,
+            "is_uploader": is_uploader,
         },
     )
 
@@ -923,3 +933,23 @@ def admin_stats(request):
         "top_uploaders": top_uploaders,
     }
     return render(request, "note2webapp/admin_stats.html", context)
+
+
+@login_required
+def model_comments_view(request, version_id):
+    version = get_object_or_404(ModelVersion, id=version_id)
+    comments = ModelComment.objects.filter(
+        model_version=version, parent=None
+    ).prefetch_related("replies", "user__profile")
+
+    # Check if user is uploader or reviewer
+    is_uploader = version.upload.user == request.user
+    is_reviewer = request.user.profile.role == "reviewer"
+
+    context = {
+        "version": version,
+        "comments": comments,
+        "is_uploader": is_uploader,
+        "is_reviewer": is_reviewer,
+    }
+    return render(request, "note2webapp/model_comments.html", context)

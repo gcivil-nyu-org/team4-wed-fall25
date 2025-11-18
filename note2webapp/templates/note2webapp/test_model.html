@@ -54,89 +54,174 @@
         </div>
     </div>
 
-    {# AFTER RUN: show split layout #}
-    {% if result %}
-    <div class="tm-body-split">
-        <!-- LEFT: form -->
-        <div class="tm-form-card">
-            <h5 class="tm-section-title">Input Data</h5>
-            <form method="post">
-                {% csrf_token %}
-                <div class="tm-field">
-                    <label for="inputData" class="tm-label">
-                        Enter input JSON <span class="tm-required">*</span>
-                    </label>
-                    <div class="tm-hint" style="color:#f472b6;">
-                        - Single case: {"text": "The food was delicious"}<br>
-                        - Multiple cases: [{"text": "A"}, {"text": "B"}]
-                    </div>
-                    <textarea
-                        id="inputData"
-                        name="input_data"
-                        rows="10"
-                        class="tm-textarea"
-                    >{{ last_input|default:'' }}</textarea>
+    <!-- Main content: Testing and Comments side by side -->
+    <div class="tm-main-split">
+        <!-- LEFT: Testing Section -->
+        <div class="tm-testing-section">
+            {# AFTER RUN: show split layout #}
+            {% if result %}
+            <div class="tm-testing-split">
+                <!-- Form -->
+                <div class="tm-form-card">
+                    <h5 class="tm-section-title">Input Data</h5>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="tm-field">
+                            <label for="inputData" class="tm-label">
+                                Enter input JSON <span class="tm-required">*</span>
+                            </label>
+                            <div class="tm-hint" style="color:#f472b6;">
+                                - Single case: {"text": "The food was delicious"}<br>
+                                - Multiple cases: [{"text": "A"}, {"text": "B"}]
+                            </div>
+                            <textarea
+                                id="inputData"
+                                name="input_data"
+                                rows="10"
+                                class="tm-textarea"
+                            >{{ last_input|default:'' }}</textarea>
+                        </div>
+                        <div class="tm-footer">
+                            <button type="submit" class="tm-submit-btn">Run Test</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="tm-footer">
-                    <button type="submit" class="tm-submit-btn">Run Test</button>
-                </div>
-            </form>
-        </div>
 
-        <!-- RIGHT: result -->
-        <div class="tm-result-card">
-            <h5 class="tm-section-title">Test Result</h5>
-            {% if result.status == "ok" or result.batch %}
-                <div class="tm-result-success">
-                    <div class="tm-result-header">
-                        <span>Success</span>
-                    </div>
-                    {# if your view returns batch outputs #}
-                    {% if result.outputs %}
-                        <pre class="tm-result-output">{{ result.outputs|safe }}</pre>
+                <!-- Result -->
+                <div class="tm-result-card">
+                    <h5 class="tm-section-title">Test Result</h5>
+                    {% if result.status == "ok" or result.batch %}
+                        <div class="tm-result-success">
+                            <div class="tm-result-header">
+                                <span>Success</span>
+                            </div>
+                            {% if result.outputs %}
+                                <pre class="tm-result-output">{{ result.outputs|safe }}</pre>
+                            {% else %}
+                                <pre class="tm-result-output">{{ result|safe }}</pre>
+                            {% endif %}
+                        </div>
                     {% else %}
-                        <pre class="tm-result-output">{{ result|safe }}</pre>
+                        <div class="tm-result-error">
+                            <div class="tm-result-header">
+                                <span>Error</span>
+                            </div>
+                            <pre class="tm-result-output">{{ result.error|default:result|safe }}</pre>
+                        </div>
                     {% endif %}
                 </div>
+            </div>
             {% else %}
-                <div class="tm-result-error">
-                    <div class="tm-result-header">
-                        <span>Error</span>
+            {# BEFORE RUN: single column #}
+            <div class="tm-form-card">
+                <h5 class="tm-section-title">Input Data</h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="tm-field">
+                        <label for="inputData" class="tm-label">
+                            Enter input JSON <span class="tm-required">*</span>
+                        </label>
+                        <div class="tm-hint">
+                            Provide valid JSON matching your model's input schema.
+                            Example: {"text": "The food was delicious and service was excellent"}
+                        </div>
+                        <textarea
+                            id="inputData"
+                            name="input_data"
+                            rows="8"
+                            class="tm-textarea"
+                            placeholder='{"text": "The food was delicious and service was excellent"}'
+                        >{{ last_input|default:'' }}</textarea>
                     </div>
-                    <pre class="tm-result-output">{{ result.error|default:result|safe }}</pre>
-                </div>
+                    <div class="tm-footer">
+                        <button type="submit" class="tm-submit-btn">Run Test</button>
+                    </div>
+                </form>
+            </div>
             {% endif %}
         </div>
-    </div>
 
-    {% else %}
-    {# BEFORE RUN: single column like your screenshot #}
-    <div class="tm-form-card">
-        <h5 class="tm-section-title">Input Data</h5>
-        <form method="post">
-            {% csrf_token %}
-            <div class="tm-field">
-                <label for="inputData" class="tm-label">
-                    Enter input JSON <span class="tm-required">*</span>
-                </label>
-                <div class="tm-hint">
-                    Provide valid JSON matching your model's input schema.
-                    Example: {"text": "The food was delicious and service was excellent"}
+        <!-- RIGHT: Comments Section -->
+        <div class="tm-comments-section">
+            <div class="tm-comments-card">
+                <h5 class="tm-section-title">💬 Discussion & Feedback</h5>
+                
+                <!-- Comments Container -->
+                <div id="comments-container" class="tm-comments-container">
+                    {% for comment in comments %}
+                    <div class="tm-comment mb-3" id="comment-{{ comment.id }}" data-comment-id="{{ comment.id }}">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="tm-comment-avatar">
+                                    {{ comment.user.username|slice:":1"|upper }}
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-0">
+                                        {{ comment.user.username }}
+                                        <span class="tm-badge tm-badge-info">{{ comment.user.profile.role }}</span>
+                                        {% if comment.user == version.upload.user %}
+                                        <span class="tm-badge tm-badge-success">Author</span>
+                                        {% endif %}
+                                    </h6>
+                                    <small class="tm-text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                                </div>
+                                <p class="tm-comment-content mb-1 mt-2">{{ comment.content }}</p>
+                                <button class="tm-reply-btn" data-comment-id="{{ comment.id }}">Reply</button>
+                                
+                                <!-- Replies -->
+                                {% if comment.replies.all %}
+                                <div class="tm-replies ms-4 mt-2" id="replies-{{ comment.id }}">
+                                    {% for reply in comment.replies.all %}
+                                    <div class="tm-reply mb-2">
+                                        <div class="d-flex justify-content-between">
+                                            <h6 class="mb-0">
+                                                {{ reply.user.username }}
+                                                <span class="tm-badge tm-badge-info">{{ reply.user.profile.role }}</span>
+                                                {% if reply.user == version.upload.user %}
+                                                <span class="tm-badge tm-badge-success">Author</span>
+                                                {% endif %}
+                                            </h6>
+                                            <small class="tm-text-muted">{{ reply.created_at|date:"M d, Y H:i" }}</small>
+                                        </div>
+                                        <p class="tm-comment-content mb-0 mt-1">{{ reply.content }}</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="tm-replies ms-4 mt-2" id="replies-{{ comment.id }}"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="tm-comment-divider">
+                    {% empty %}
+                    <p class="tm-text-muted text-center">No comments yet. Be the first to comment!</p>
+                    {% endfor %}
                 </div>
-                <textarea
-                    id="inputData"
-                    name="input_data"
-                    rows="8"
-                    class="tm-textarea"
-                    placeholder='{"text": "The food was delicious and service was excellent"}'
-                >{{ last_input|default:'' }}</textarea>
+
+                <!-- Comment Input -->
+                <div class="tm-comment-input mt-3">
+                    <div id="reply-indicator" class="tm-reply-indicator d-none mb-2">
+                        Replying to <strong id="reply-to-user"></strong>
+                        <button type="button" class="tm-close-btn" id="cancel-reply">×</button>
+                    </div>
+                    <div class="tm-input-group">
+                        <input 
+                            id="comment-input" 
+                            type="text" 
+                            class="tm-comment-field" 
+                            placeholder="Add a comment..."
+                        >
+                        <button id="comment-submit" class="tm-comment-submit">
+                            <span id="submit-text">Comment</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="tm-footer">
-                <button type="submit" class="tm-submit-btn">Run Test</button>
-            </div>
-        </form>
+        </div>
     </div>
-    {% endif %}
 </div>
 
 <style>
@@ -296,10 +381,366 @@
     gap: 20px;
 }
 
+/* Main split: Testing and Comments side by side */
+.tm-main-split {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.tm-testing-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.tm-testing-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.tm-comments-section {
+    position: sticky;
+    top: 20px;
+}
+
+.tm-comments-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 18px 18px 22px;
+    height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+}
+
+.tm-comments-container {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 350px);
+    padding-right: 8px;
+}
+
+.tm-comment {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tm-comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #3b82ff, #2154ff);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.tm-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.tm-badge-info {
+    background-color: rgba(13, 202, 240, 0.2);
+    color: #0dcaf0;
+}
+
+.tm-badge-success {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.tm-text-muted {
+    color: #8f96a3;
+    font-size: 0.85rem;
+}
+
+.tm-comment-content {
+    color: #fff;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.tm-reply-btn {
+    background: none;
+    border: none;
+    color: #0dcaf0;
+    font-size: 0.85rem;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: none;
+    margin-top: 4px;
+}
+
+.tm-reply-btn:hover {
+    text-decoration: underline;
+}
+
+.tm-replies {
+    border-left: 2px solid rgba(255,255,255,0.1);
+    padding-left: 12px;
+    margin-top: 8px;
+}
+
+.tm-reply {
+    padding-bottom: 8px;
+}
+
+.tm-comment-divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    margin: 12px 0;
+}
+
+.tm-comment-input {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.tm-reply-indicator {
+    background-color: rgba(13, 202, 240, 0.1);
+    border: 1px solid rgba(13, 202, 240, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #0dcaf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tm-close-btn {
+    background: none;
+    border: none;
+    color: #0dcaf0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tm-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.tm-comment-field {
+    flex: 1;
+    background-color: #1b1d22;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.tm-comment-field:focus {
+    outline: none;
+    border-color: rgba(80,130,255,0.6);
+    box-shadow: 0 0 0 3px rgba(80,130,255,0.12);
+}
+
+.tm-comment-submit {
+    background: linear-gradient(145deg, #10b981, #059669);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tm-comment-submit:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
 /* responsive */
+@media (max-width: 1200px) {
+    .tm-main-split {
+        grid-template-columns: 1fr;
+    }
+    .tm-comments-section {
+        position: static;
+    }
+    .tm-comments-card {
+        height: auto;
+        max-height: 600px;
+    }
+    .tm-comments-container {
+        max-height: 400px;
+    }
+}
+
 @media (max-width: 900px) {
     .tm-body-split { grid-template-columns: 1fr; }
     .test-model-shell { padding: 16px; }
 }
 </style>
+
+<script>
+    const versionId = "{{ version.id }}";
+    const userName = "{{ request.user.username }}";
+    const userRole = "{{ request.user.profile.role }}";
+    const isAuthor = {{ is_uploader|lower }};
+    const authorUsername = "{{ version.upload.user.username }}";
+    
+    let replyToCommentId = null;
+    let replyToUsername = null;
+    
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/model/' + versionId + '/comments/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        addCommentToUI(data);
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('WebSocket closed unexpectedly');
+    };
+
+    function addCommentToUI(data) {
+        const container = data.parent_id 
+            ? document.getElementById(`replies-${data.parent_id}`)
+            : document.getElementById('comments-container');
+        
+        if (!container) return;
+        
+        const isReply = data.parent_id !== null;
+        const commentDiv = document.createElement('div');
+        commentDiv.className = isReply ? 'tm-reply mb-2' : 'tm-comment mb-3';
+        commentDiv.id = `comment-${data.comment_id}`;
+        
+        const authorBadge = data.username === authorUsername 
+            ? '<span class="tm-badge tm-badge-success">Author</span>' 
+            : '';
+        
+        if (isReply) {
+            commentDiv.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <h6 class="mb-0">
+                        ${data.username}
+                        <span class="tm-badge tm-badge-info">${data.user_role}</span>
+                        ${authorBadge}
+                    </h6>
+                    <small class="tm-text-muted">${data.timestamp}</small>
+                </div>
+                <p class="tm-comment-content mb-0 mt-1">${data.message}</p>
+            `;
+        } else {
+            commentDiv.innerHTML = `
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <div class="tm-comment-avatar">
+                            ${data.username.charAt(0).toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="mb-0">
+                                ${data.username}
+                                <span class="tm-badge tm-badge-info">${data.user_role}</span>
+                                ${authorBadge}
+                            </h6>
+                            <small class="tm-text-muted">${data.timestamp}</small>
+                        </div>
+                        <p class="tm-comment-content mb-1 mt-2">${data.message}</p>
+                        <button class="tm-reply-btn" data-comment-id="${data.comment_id}">Reply</button>
+                        <div class="tm-replies ms-4 mt-2" id="replies-${data.comment_id}"></div>
+                    </div>
+                </div>
+            `;
+            
+            const hr = document.createElement('hr');
+            hr.className = 'tm-comment-divider';
+            container.appendChild(hr);
+            
+            // Add event listener to new reply button
+            const replyBtn = commentDiv.querySelector('.tm-reply-btn');
+            if (replyBtn) {
+                replyBtn.addEventListener('click', function() {
+                    handleReplyClick(this);
+                });
+            }
+        }
+        
+        container.appendChild(commentDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function handleReplyClick(button) {
+        const commentId = button.getAttribute('data-comment-id');
+        const commentDiv = document.getElementById(`comment-${commentId}`);
+        const username = commentDiv.querySelector('h6').textContent.trim().split('\n')[0].trim();
+        
+        replyToCommentId = commentId;
+        replyToUsername = username;
+        
+        document.getElementById('reply-indicator').classList.remove('d-none');
+        document.getElementById('reply-to-user').textContent = username;
+        document.getElementById('submit-text').textContent = 'Reply';
+        document.getElementById('comment-input').focus();
+    }
+
+    document.getElementById('cancel-reply').addEventListener('click', function() {
+        replyToCommentId = null;
+        replyToUsername = null;
+        document.getElementById('reply-indicator').classList.add('d-none');
+        document.getElementById('submit-text').textContent = 'Comment';
+    });
+
+    // Add event listeners to existing reply buttons
+    document.querySelectorAll('.tm-reply-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            handleReplyClick(this);
+        });
+    });
+
+    document.getElementById('comment-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('comment-submit').click();
+        }
+    });
+
+    document.getElementById('comment-submit').addEventListener('click', function() {
+        const input = document.getElementById('comment-input');
+        const message = input.value.trim();
+        
+        if (message) {
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'username': userName,
+                'parent_id': replyToCommentId
+            }));
+            
+            input.value = '';
+            
+            if (replyToCommentId) {
+                document.getElementById('cancel-reply').click();
+            }
+        }
+    });
+</script>
 {% endblock %}
