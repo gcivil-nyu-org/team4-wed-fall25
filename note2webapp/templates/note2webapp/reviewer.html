@@ -223,6 +223,14 @@
                     <i class="fas fa-vial"></i>
                     <span>Test on CPU</span>
                 </a>
+                
+                <!-- ADD THIS NEW BUTTON -->
+                <a href="{% url 'model_comments' active_version.id %}" 
+                   class="rvd-btn rvd-btn-success">
+                    <i class="fas fa-comments"></i>
+                    <span>Discussion</span>
+                </a>
+                
                 <a href="?page=add_feedback&pk={{ active_version.pk }}" class="rvd-btn rvd-btn-secondary">
                     <i class="fas fa-comment-dots"></i>
                     <span>Add Feedback</span>
@@ -430,6 +438,20 @@
     text-decoration: none;
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(111,66,193,0.5);
+}
+
+.rvd-btn-success {
+    background: linear-gradient(145deg, #10b981, #059669);
+    box-shadow: 0 4px 12px rgba(16,185,129,0.4);
+    color: #fff;
+}
+
+.rvd-btn-success:hover {
+    filter: brightness(1.1);
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(16,185,129,0.5);
 }
 
 .rvd-no-version {

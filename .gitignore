@@ -8,6 +8,8 @@ venv/
 # Django stuff
 db.sqlite3
 *.log
+media/
+staticfiles/
 
 # Migrations (optional — keep if model changes are intentional)
 # note2webapp/migrations/

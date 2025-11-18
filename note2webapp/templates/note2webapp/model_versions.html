@@ -94,6 +94,13 @@
                         <td>
                             {% if not version.is_deleted %}
                                 <div class="vm-action-buttons">
+                                    <!-- ADD THIS FIRST - Comments Button -->
+                                    <a href="{% url 'model_comments' version.id %}" 
+                                       class="vm-btn vm-btn-info" 
+                                       title="View comments and discussion">
+                                        💬 Comments
+                                    </a>
+                                    
                                     {% if version.status == "PASS" %}
                                         {% if version.is_active %}
                                         <!-- Deprecate active version -->
