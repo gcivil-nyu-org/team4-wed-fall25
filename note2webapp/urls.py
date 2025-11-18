@@ -45,4 +45,9 @@ urlpatterns = [
         name="run_model_by_version_id",
     ),
     path("admin/stats/", views.admin_stats, name="admin_stats"),
+    path(
+        "model/<int:version_id>/comments/",
+        views.model_comments_view,
+        name="model_comments",
+    ),
 ]
