@@ -17,10 +17,10 @@ from django.core.asgi import get_asgi_application
 
 django_asgi_app = get_asgi_application()
 
-# Import routing AFTER Django is configured
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
-import note2webapp.routing
+
+from channels.routing import ProtocolTypeRouter, URLRouter  # noqa: E402
+from channels.auth import AuthMiddlewareStack  # noqa: E402
+import note2webapp.routing  # noqa: E402
 
 application = ProtocolTypeRouter(
     {
