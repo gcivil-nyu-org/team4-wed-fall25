@@ -76,7 +76,7 @@
                             {% endif %}
                         </td>
                         <td class="{% if version.is_deleted %}text-strike{% endif %}">
-                            {{ version.created_at|date:"M d, Y H:i" }}
+                            <span class="utc-time" data-utc="{{ version.created_at|date:'c' }}"></span>
                         </td>
                         <td>
                             {% if version.status == "FAIL" %}
@@ -616,5 +616,26 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Convert UTC timestamps to local device time
+document.addEventListener("DOMContentLoaded", function() {
+    function formatToLocalTime(utcString) {
+        const date = new Date(utcString);
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return date.toLocaleString(undefined, options);
+    }
+
+    document.querySelectorAll('.utc-time').forEach(el => {
+        const utc = el.dataset.utc;
+        el.textContent = formatToLocalTime(utc);
+    });
+});
+
 </script>
 {% endblock %}
