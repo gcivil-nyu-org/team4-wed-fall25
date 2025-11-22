@@ -98,6 +98,7 @@ class ModelVersion(models.Model):
     is_active = models.BooleanField(default=False)
     log = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    usage_count = models.PositiveIntegerField(default=0, help_text="Number of times this version has been tested.")
 
     # soft delete
     is_deleted = models.BooleanField(default=False)

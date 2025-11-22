@@ -13,7 +13,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
 from django import forms
-from django.db import transaction, IntegrityError
+from django.db import transaction, IntegrityError, models
 
 # for admin stats
 from django.contrib.admin.views.decorators import staff_member_required
@@ -753,6 +753,10 @@ def test_model_cpu(request, version_id):
                     parse_error = (
                         "Top-level JSON must be either an object {...} or a list [...]."
                     )
+                # Increment usage counter every time it's tested
+                version.usage_count = models.F("usage_count") + 1
+                version.save(update_fields=["usage_count"])
+                version.refresh_from_db()
 
             except json.JSONDecodeError as e:
                 raw_msg = str(e)

@@ -51,6 +51,7 @@
                         <th>Status</th>
                         <th>Uploaded</th>
                         <th>State</th>
+                        <th>Runs</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -90,6 +91,17 @@
                                 <span class="badge bg-secondary">Inactive</span>
                                 {% endif %}
                             {% endif %}
+                        </td>
+                        <td>
+                        {% if version.usage_count > 50 %}
+                            <span class="badge bg-danger">{{ version.usage_count }}</span>
+                        {% elif version.usage_count > 20 %}
+                            <span class="badge bg-warning text-dark">{{ version.usage_count }}</span>
+                        {% elif version.usage_count > 5 %}
+                            <span class="badge bg-success">{{ version.usage_count }}</span>
+                        {% else %}
+                            <span class="badge bg-primary">{{ version.usage_count }}</span>
+                        {% endif %}
                         </td>
                         <td>
                             {% if not version.is_deleted %}
