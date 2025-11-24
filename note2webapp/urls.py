@@ -50,4 +50,5 @@ urlpatterns = [
         views.model_comments_view,
         name="model_comments",
     ),
+    path("api/generate-model-info/", views.generate_model_info, name="generate_model_info"),
 ]

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Reviewer Dashboard{% endblock %}
 
 {% block content %}
@@ -7,8 +8,20 @@
 <div class="reviewer-shell">
     <!-- Header -->
     <div class="rv-header">
-        <h2 class="rv-title">🧠 Uploaded Model Versions</h2>
-        <p class="rv-subtitle">Review and provide feedback on active model versions</p>
+        <div>
+            <h2 class="rv-title">🧠 Uploaded Model Versions</h2>
+            <p class="rv-subtitle">Review and provide feedback on active model versions</p>
+        </div>
+
+        <!-- Tutorial button matching uploader styling -->
+        <button
+            type="button"
+            class="tutorial-btn"
+            data-bs-toggle="modal"
+            data-bs-target="#reviewerTutorialModal">
+            <span class="tutorial-icon">?</span>
+            <span class="tutorial-label">Tutorial</span>
+        </button>
     </div>
 
     <!-- Flash Messages -->
@@ -38,6 +51,29 @@
     {% endfor %}
 </div>
 
+<!-- Reviewer Tutorial Modal -->
+<div class="modal fade" id="reviewerTutorialModal" tabindex="-1"
+     aria-labelledby="reviewerTutorialLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background-color:#111827; color:#e5e7eb;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="reviewerTutorialLabel">Reviewer Tutorial</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="ratio ratio-16x9">
+          <video controls>
+            <!-- Put your actual video file at: note2webapp/static/note2webapp/videos/reviewer_tutorial.mp4 -->
+            <source src="{% static 'note2webapp/videos/reviewer_tutorial.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
 /* Main container */
 .reviewer-shell {
@@ -55,9 +91,54 @@
 /* Header */
 .rv-header {
     margin-bottom: 24px;
-    text-align: center;
     padding-bottom: 20px;
     border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Tutorial button – same style as uploader */
+.tutorial-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.7);
+  background: radial-gradient(circle at 0% 0%, #020617 0%, #111827 70%);
+  box-shadow: 0 0 0 1px rgba(15,23,42,0.9);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #e5e7eb;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.tutorial-btn:hover {
+  border-color: rgba(129,140,248,0.9);
+  box-shadow: 0 6px 14px rgba(15,23,42,0.9);
+  transform: translateY(-1px);
+}
+.tutorial-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(15,23,42,1);
+  color: #a5b4fc;
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.7);
+}
+.tutorial-label {
+  line-height: 1;
 }
 
 .rv-title {
@@ -208,7 +289,6 @@
                 </div>
             </div>
 
-            {# 👇 NEW: show category from backend #}
             <p class="mb-2">Category: {{ active_version.get_category_display }}</p>
             
             {% if active_version.log %}
@@ -224,7 +304,6 @@
                     <span>Test on CPU</span>
                 </a>
                 
-                <!-- ADD THIS NEW BUTTON -->
                 <a href="{% url 'model_comments' active_version.id %}" 
                    class="rvd-btn rvd-btn-success">
                     <i class="fas fa-comments"></i>
