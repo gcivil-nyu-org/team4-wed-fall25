@@ -13,16 +13,33 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 import tempfile
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+if load_dotenv is not None:
+    env_path = BASE_DIR / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-&o)&&#rx8x52xt-^45hwuzf*86x69zhy^bvh2z#q^nl%$61*%&"
+# ---- Secrets (from environment) ----
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY is not set in environment")
+
+# Optional: warn if OpenAI key missing (AI features will just fail gracefully)
+if not OPENAI_API_KEY:
+    print(
+        "WARNING: OPENAI_API_KEY is not set – AI features depending on OpenAI will not work."
+    )
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
