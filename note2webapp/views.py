@@ -974,9 +974,7 @@ def generate_model_info(request):
             size_mb = model_file.size / (1024 * 1024)
         except Exception:
             size_mb = 0.0
-        model_summary = (
-            f"PyTorch model file '{model_file.name}' (~{size_mb:.2f} MB)."
-        )
+        model_summary = f"PyTorch model file '{model_file.name}' (~{size_mb:.2f} MB)."
 
         # predict.py content (truncate and rewind so upload still works)
         try:

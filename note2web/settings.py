@@ -36,7 +36,9 @@ if not SECRET_KEY:
 
 # Optional: warn if OpenAI key missing (AI features will just fail gracefully)
 if not OPENAI_API_KEY:
-    print("WARNING: OPENAI_API_KEY is not set – AI features depending on OpenAI will not work.")
+    print(
+        "WARNING: OPENAI_API_KEY is not set – AI features depending on OpenAI will not work."
+    )
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
