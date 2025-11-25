@@ -32,7 +32,11 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 if not SECRET_KEY:
-    raise RuntimeError("DJANGO_SECRET_KEY is not set in environment")
+    if os.environ.get("CI") or os.environ.get("TRAVIS"):
+        SECRET_KEY = "dummy-key-for-ci"
+        print("INFO: Using dummy SECRET_KEY for CI environment.")
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY is not set in environment")
 
 # Optional: warn if OpenAI key missing (AI features will just fail gracefully)
 if not OPENAI_API_KEY:
