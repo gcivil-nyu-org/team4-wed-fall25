@@ -602,7 +602,7 @@
     const versionId = "{{ version.id }}";
     const userName = "{{ request.user.username }}";
     const userRole = "{{ request.user.profile.role }}";
-    const isAuthor = {{ is_uploader|lower }};
+    const isAuthor = "{{ is_uploader|yesno:'true,false' }}" === "true";
     const authorUsername = "{{ version.upload.user.username }}";
     
     let replyToCommentId = null;
