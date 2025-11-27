@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django import forms
 from note2webapp.forms import VersionForm
 
 
@@ -88,6 +89,14 @@ class VersionFormTests(TestCase):
         form = VersionForm(data=files, files=files)
         self.assertFalse(form.is_valid())
         self.assertIn("This field is required", str(form.errors))
+
+    def test_clean_tag_explicitly_raises_error_when_missing(self):
+        """Covers raise forms.ValidationError('Tag is required') in clean_tag()."""
+        form = VersionForm(data={})
+        form.fields["tag"].required = False
+        form.cleaned_data = {}  # simulate cleaned_data as Django would
+        with self.assertRaisesMessage(forms.ValidationError, "Tag is required"):
+            form.clean_tag()
 
     def test_clean_tag_valid_path(self):
         """Ensure valid tag value passes through clean_tag() and returns correctly."""
