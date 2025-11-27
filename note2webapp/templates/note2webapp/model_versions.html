@@ -15,12 +15,14 @@
 
     {# show Django messages if any #}
     {% if messages %}
-      {% for message in messages %}
-        <div class="vm-message">{{ message }}</div>
-      {% endfor %}
+      <div class="vm-messages">
+        {% for message in messages %}
+          <div class="vm-message">{{ message }}</div>
+        {% endfor %}
+      </div>
     {% endif %}
 
-    {# show non-field errors from the version form (this is where duplicate-upload error will show) #}
+    {# show non-field errors from the version form (duplicate upload, etc.) #}
     {% if version_form and version_form.non_field_errors %}
       <div class="vm-error-box">
         {{ version_form.non_field_errors.0 }}
@@ -58,100 +60,131 @@
                 <tbody>
                     {% for version in versions %}
                     <tr class="{% if version.is_deleted %}vm-row-deleted{% endif %}" data-version-id="{{ version.id }}">
+                        <!-- Version -->
                         <td class="{% if version.is_deleted %}text-strike{% endif %}">
                             <strong>v{{ version.version_number }}</strong>
                         </td>
+
+                        <!-- Tag -->
                         <td class="{% if version.is_deleted %}text-strike{% endif %}">
                             {{ version.tag }}
                         </td>
+
+                        <!-- Category -->
                         <td class="{% if version.is_deleted %}text-strike{% endif %}">
                             <span class="badge bg-info">{{ version.get_category_display }}</span>
                         </td>
+
+                        <!-- Status -->
                         <td class="{% if version.is_deleted %}text-strike{% endif %}">
                             {% if version.status == "PASS" %}
-                            <span class="badge bg-success">Passed</span>
+                                <span class="badge bg-success">Passed</span>
                             {% elif version.status == "FAIL" %}
-                            <span class="badge bg-danger">Failed</span>
+                                <span class="badge bg-danger">Failed</span>
                             {% else %}
-                            <span class="badge bg-warning text-dark">Pending</span>
+                                <span class="badge bg-warning text-dark">Pending</span>
                             {% endif %}
                         </td>
+
+                        <!-- Uploaded -->
                         <td class="{% if version.is_deleted %}text-strike{% endif %}">
-                            <span class="utc-time" data-utc="{{ version.created_at|date:'c' }}"></span>
+                            {{ version.created_at|date:"d M Y, H:i" }}
                         </td>
+
+                        <!-- State (Active / Inactive / Deleted; dash for FAIL) -->
                         <td>
                             {% if version.status == "FAIL" %}
                                 <span class="text-muted">—</span>
                             {% else %}
                                 {% if version.is_deleted %}
-                                <span class="badge bg-danger">Deleted</span>
+                                    <span class="badge bg-danger">Deleted</span>
                                 {% elif version.is_active %}
-                                <span class="badge bg-success">Active</span>
+                                    <span class="badge bg-success">Active</span>
                                 {% else %}
-                                <span class="badge bg-secondary">Inactive</span>
+                                    <span class="badge bg-secondary">Inactive</span>
                                 {% endif %}
                             {% endif %}
                         </td>
+
+                        <!-- Runs -->
                         <td>
-                        {% if version.usage_count > 50 %}
-                            <span class="badge bg-danger">{{ version.usage_count }}</span>
-                        {% elif version.usage_count > 20 %}
-                            <span class="badge bg-warning text-dark">{{ version.usage_count }}</span>
-                        {% elif version.usage_count > 5 %}
-                            <span class="badge bg-success">{{ version.usage_count }}</span>
-                        {% else %}
-                            <span class="badge bg-primary">{{ version.usage_count }}</span>
-                        {% endif %}
+                            {% if version.usage_count > 50 %}
+                                <span class="badge bg-danger">{{ version.usage_count }}</span>
+                            {% elif version.usage_count > 20 %}
+                                <span class="badge bg-warning text-dark">{{ version.usage_count }}</span>
+                            {% elif version.usage_count > 5 %}
+                                <span class="badge bg-success">{{ version.usage_count }}</span>
+                            {% else %}
+                                <span class="badge bg-primary">{{ version.usage_count }}</span>
+                            {% endif %}
                         </td>
+
+                        <!-- Actions -->
                         <td>
                             {% if not version.is_deleted %}
                                 <div class="vm-action-buttons">
-                                    <!-- ADD THIS FIRST - Comments Button -->
+                                    <!-- Comments Button -->
                                     <a href="{% url 'model_comments' version.id %}" 
                                        class="vm-btn vm-btn-info" 
                                        title="View comments and discussion">
                                         💬 Comments
                                     </a>
-                                    
+
+                                    {# Retry upload for failed versions #}
+                                    {% if version.status == "FAIL" %}
+                                        <a href="{% url 'dashboard' %}?page=add_version&pk={{ model_upload.id }}&retry={{ version.id }}"
+                                        class="vm-btn vm-btn-warning"
+                                        title="Retry upload using this failed version as a template">
+                                            Retry upload
+                                        </a>
+                                    {% endif %}
+
+
+                                    {# Actions only relevant for passed versions #}
                                     {% if version.status == "PASS" %}
                                         {% if version.is_active %}
-                                        <!-- Deprecate active version -->
-                                        <form method="post" action="{% url 'deprecate_version' version.id %}" 
-                                              class="d-inline deprecate-form">
-                                            {% csrf_token %}
-                                            <button type="submit" class="vm-btn vm-btn-warning" title="Deprecate (deactivate) this version">
-                                                Deprecate
-                                            </button>
-                                        </form>
+                                            <!-- Deprecate active version -->
+                                            <form method="post" action="{% url 'deprecate_version' version.id %}" 
+                                                  class="d-inline deprecate-form">
+                                                {% csrf_token %}
+                                                <button type="submit" 
+                                                        class="vm-btn vm-btn-warning"
+                                                        title="Deprecate (deactivate) this version">
+                                                    Deprecate
+                                                </button>
+                                            </form>
                                         {% else %}
-                                        <!-- Activate non-active version -->
-                                        <form method="post" action="{% url 'activate_version' version.id %}" 
-                                              class="d-inline activate-form">
-                                            {% csrf_token %}
-                                            <button type="submit" class="vm-btn vm-btn-success" title="Make this version active">
-                                                Activate
-                                            </button>
-                                        </form>
+                                            <!-- Activate non-active version -->
+                                            <form method="post" action="{% url 'activate_version' version.id %}" 
+                                                  class="d-inline activate-form">
+                                                {% csrf_token %}
+                                                <button type="submit" 
+                                                        class="vm-btn vm-btn-success"
+                                                        title="Make this version active">
+                                                    Activate
+                                                </button>
+                                            </form>
                                         {% endif %}
-                                        
+
                                         <!-- Test button -->
                                         <a href="{% url 'test_model_cpu' version.id %}"
-                                            class="vm-btn vm-btn-info"
-                                            title="Run test on CPU">
+                                           class="vm-btn vm-btn-info"
+                                           title="Open CPU-based test playground">
                                             Test
                                         </a>
 
                                         <!-- Information button -->
                                         <a href="{% url 'edit_version_information' version.id %}"
-                                            class="vm-btn vm-btn-purple"
-                                            title="View/Edit model information">
+                                           class="vm-btn vm-btn-purple"
+                                           title="View/Edit model information">
                                             Information
                                         </a>
                                     {% endif %}
-                                    
+
+                                    <!-- Delete button (AJAX handled in script below) -->
                                     <button class="vm-btn vm-btn-danger delete-version-btn" 
                                             data-version-id="{{ version.id }}"
-                                            data-version-tag="{{ version.tag }}"
+                                            data-version-tag="v{{ version.version_number }}"
                                             {% if version.is_active %}data-is-active="true"{% endif %}
                                             title="Delete this version">
                                         Delete
@@ -164,7 +197,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="8" class="text-center py-5">
                             <div class="empty-state-inline">
                                 <i class="fas fa-inbox fa-2x mb-2 text-muted"></i>
                                 <p class="text-muted mb-0">No versions found for this model</p>
@@ -228,86 +261,91 @@
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 10px;
     padding: 10px 16px;
-    font-size: 0.9rem;
+    text-decoration: none;
+    color: #e5e7eb;
     font-weight: 500;
-    color: #fff;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 }
+
+.vm-back-btn span:first-child {
+    font-size: 1.1rem;
+}
+
 .vm-back-btn:hover {
-    background-color: rgba(255,255,255,0.1);
-    text-decoration: none;
-    color: #fff;
-    transform: translateX(-2px);
+    background-color: rgba(255,255,255,0.12);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+}
+
+/* Messages / errors */
+.vm-messages {
+    margin-bottom: 12px;
+}
+
+.vm-message {
+    background-color: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.6);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #e0f2fe;
+    margin-bottom: 4px;
+}
+
+.vm-error-box {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background-color: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.6);
+    color: #fee2e2;
+    font-size: 0.85rem;
 }
 
 /* Header */
 .vm-header {
-    margin-bottom: 24px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 16px;
+}
+
+.vm-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .vm-title {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 600;
-    color: #fff;
-    margin: 0 0 4px 0;
-    line-height: 1.3;
+    margin: 0;
+    color: #f9fafb;
 }
 
 .vm-subtitle {
-    color: #8f96a3;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    color: #9ca3af;
     margin: 0;
-}
-
-/* Error + message boxes */
-.vm-error-box {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.5);
-    color: #fff;
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 14px;
-    font-size: 0.85rem;
-}
-
-.vm-message {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.04);
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-bottom: 8px;
-    font-size: 0.85rem;
 }
 
 /* Table card */
 .vm-table-card {
-    background-color: #24272d;
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px;
+    background-color: #181a1f;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
     box-shadow: 0 24px 48px rgba(0,0,0,0.7);
-    margin-bottom: 20px;
     overflow: hidden;
+    margin-bottom: 20px;
 }
 
-.table-responsive {
-    overflow-x: auto;
-}
-
+/* Table */
 .vm-table {
     width: 100%;
-    margin: 0;
+    margin-bottom: 0;
     border-collapse: collapse;
-    color: #fff;
-    font-size: 0.9rem;
 }
 
 .vm-table thead {
-    background-color: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: linear-gradient(90deg, #111827, #020617);
 }
 
 .vm-table thead th {
@@ -341,46 +379,50 @@
 }
 
 /* Deleted row styling */
-.vm-row-deleted {
-    opacity: 0.5;
-    background-color: rgba(255,255,255,0.02);
+.vm-row-deleted td {
+    color: #6b7280 !important;
 }
 
 .text-strike {
     text-decoration: line-through;
-    color: #999;
+    opacity: 0.7;
 }
 
 /* Action buttons */
 .vm-action-buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
 }
 
 .vm-btn {
-    padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 999px;
+    padding: 6px 14px;
     font-size: 0.8rem;
     font-weight: 500;
     border: none;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     text-decoration: none;
-    display: inline-block;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+    transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.vm-btn-success {
-    background: linear-gradient(145deg, #10b981, #059669);
-    color: #fff;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-}
-.vm-btn-success:hover {
-    background: linear-gradient(145deg, #34d399, #10b981);
+.vm-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+}
+
+.vm-btn-info {
+    background: linear-gradient(145deg, #0ea5e9, #0369a1);
     color: #fff;
+    box-shadow: 0 2px 4px rgba(14, 165, 233, 0.3);
+}
+.vm-btn-info:hover {
+    background: linear-gradient(145deg, #38bdf8, #0ea5e9);
+    box-shadow: 0 4px 8px rgba(14, 165, 233, 0.4);
+    color: #fff;
+    text-decoration: none;
 }
 
 .vm-btn-warning {
@@ -393,17 +435,18 @@
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
     color: #fff;
+    text-decoration: none;
 }
 
-.vm-btn-info {
-    background: linear-gradient(145deg, #0dcaf0, #0aa2c0);
+.vm-btn-success {
+    background: linear-gradient(145deg, #22c55e, #16a34a);
     color: #fff;
-    box-shadow: 0 2px 4px rgba(13, 202, 240, 0.3);
+    box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
 }
-.vm-btn-info:hover {
-    background: linear-gradient(145deg, #31d2f2, #0dcaf0);
+.vm-btn-success:hover {
+    background: linear-gradient(145deg, #4ade80, #22c55e);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(13, 202, 240, 0.4);
+    box-shadow: 0 4px 8px rgba(34, 197, 94, 0.4);
     color: #fff;
     text-decoration: none;
 }
@@ -454,70 +497,93 @@
 .vm-summary-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 12px;
+    align-items: center;
 }
 
 .vm-summary-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-size: 0.85rem;
 }
 
 .vm-summary-label {
-    font-weight: 500;
-    color: #fff;
+    color: #9ca3af;
+    margin-right: 6px;
 }
 
 .vm-summary-value {
     font-weight: 600;
-    color: #fff;
+    color: #e5e7eb;
 }
 
 /* Empty state */
 .empty-state-inline {
-    padding: 40px 20px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
 }
 
-/* Responsive */
+/* Responsive tweaks */
 @media (max-width: 768px) {
     .version-management-shell {
         padding: 16px;
     }
-    
-    .vm-table {
-        font-size: 0.85rem;
+    .vm-table thead {
+        display: none;
     }
-    
-    .vm-table thead th,
-    .vm-table tbody td {
+    .vm-table tbody tr {
+        display: block;
         padding: 12px 8px;
     }
-    
-    .vm-action-buttons {
-        flex-direction: column;
+    .vm-table tbody td {
+        display: block;
+        padding: 6px 0;
     }
-    
-    .vm-btn {
-        width: 100%;
-        text-align: center;
+    .vm-table tbody td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #9ca3af;
+        margin-bottom: 2px;
     }
 }
 </style>
 
 <script>
+// CSRF helper
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 // Handle delete version
 document.querySelectorAll('.delete-version-btn').forEach(button => {
     button.addEventListener('click', function() {
         const versionId = this.dataset.versionId;
         const versionTag = this.dataset.versionTag;
         const isActive = this.dataset.isActive === 'true';
-        
+
         if (isActive) {
             alert('Cannot delete active version. Please deprecate it first.');
             return;
         }
-        
-        if (confirm(`Are you sure you want to delete version "${versionTag}"?\n\nThis will:\n- Mark the version as deleted\n- Remove all associated files from the server\n\nThis action cannot be undone.`)) {
+
+        const msg = `Are you sure you want to delete version "${versionTag}"?\n\n` +
+                    `This will remove the model and all associated files from the server.\n\n` +
+                    `This action cannot be undone.`;
+
+        if (confirm(msg)) {
             fetch(`/delete-version/${versionId}/`, {
                 method: 'POST',
                 headers: {
@@ -551,7 +617,7 @@ document.querySelectorAll('.activate-form').forEach(form => {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         const url = this.action;
-        
+
         fetch(url, {
             method: 'POST',
             headers: {
@@ -584,7 +650,7 @@ document.querySelectorAll('.deprecate-form').forEach(form => {
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         const url = this.action;
-        
+
         if (confirm('Are you sure you want to deprecate this active version? It will be deactivated.')) {
             fetch(url, {
                 method: 'POST',
@@ -613,41 +679,5 @@ document.querySelectorAll('.deprecate-form').forEach(form => {
         }
     });
 });
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-// Convert UTC timestamps to local device time
-document.addEventListener("DOMContentLoaded", function() {
-    function formatToLocalTime(utcString) {
-        const date = new Date(utcString);
-        const options = {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        };
-        return date.toLocaleString(undefined, options);
-    }
-
-    document.querySelectorAll('.utc-time').forEach(el => {
-        const utc = el.dataset.utc;
-        el.textContent = formatToLocalTime(utc);
-    });
-});
-
 </script>
 {% endblock %}
