@@ -39,7 +39,7 @@ deploy:
   - provider: elasticbeanstalk
     region: "us-west-2"
     app: "note2web"
-    env: "note2web-staging-clean"
+    env: "note2web-staging-v2"
     bucket_name: "elasticbeanstalk-us-west-2-197990254697"
     on:
       branch: develop
