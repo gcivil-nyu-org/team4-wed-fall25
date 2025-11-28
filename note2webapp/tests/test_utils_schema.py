@@ -3,6 +3,9 @@ from unittest.mock import patch
 from django.test import TestCase
 from note2webapp import utils
 from note2webapp.models import ModelUpload, ModelVersion, User
+import tempfile
+import json
+from pathlib import Path
 
 
 class UtilsSchemaTests(TestCase):
@@ -83,3 +86,64 @@ class UtilsSchemaTests(TestCase):
         self.assertEqual(data["meta"], {})
         self.assertEqual(data["items"], [])
         self.assertEqual(data["custom"], "example")
+
+
+class UtilsSchemaExtraTests(TestCase):
+    def test_build_from_custom_schema_nested_none(self):
+        schema = {
+            "input": {"outer": {"a": "float", "b": 123}},
+            "output": {"res": "int"},
+        }
+        dummy, output = utils._build_from_custom_schema(schema)
+        self.assertIn("outer", dummy)
+        self.assertIn("a", dummy["outer"])
+        self.assertIn("b", dummy["outer"])
+        self.assertIsNone(dummy["outer"]["b"])
+        self.assertEqual(output, {"res": "int"})
+
+    def test_build_from_json_schema_uses_example_and_handles_non_dict(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "a": {"example": "explicit value"},
+                "b": "notadict",
+            },
+        }
+        data, _ = utils._build_from_json_schema(schema)
+        self.assertEqual(data["a"], "explicit value")
+        self.assertEqual(data["b"], "example")
+
+    def test_generate_input_and_output_schema_variants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+
+            wrapped = {"input": {"text": "str"}, "output": {"prediction": "float"}}
+            p1 = tmp_path / "wrapped.json"
+            p1.write_text(json.dumps(wrapped))
+            input_data, output_schema = utils.generate_input_and_output_schema(str(p1))
+            self.assertIn("text", input_data)
+            self.assertEqual(output_schema, {"prediction": "float"})
+
+            json_schema = {
+                "type": "object",
+                "properties": {"foo": {"type": "string"}},
+            }
+            p2 = tmp_path / "direct.json"
+            p2.write_text(json.dumps(json_schema))
+            input_data, output_schema = utils.generate_input_and_output_schema(str(p2))
+            self.assertEqual(input_data["foo"], "example text")
+            self.assertIsNone(output_schema)
+
+            fallback = {"something": "else"}
+            p3 = tmp_path / "fallback.json"
+            p3.write_text(json.dumps(fallback))
+            input_data, output_schema = utils.generate_input_and_output_schema(str(p3))
+            self.assertEqual(input_data, {})
+            self.assertIsNone(output_schema)
+
+    def test_is_seek_error_detects_and_rejects(self):
+        err_out = {"error": "no attribute 'seek' in dict()"}
+        self.assertTrue(utils._is_seek_error(err_out))
+        self.assertFalse(utils._is_seek_error({"error": "some other error"}))
+        self.assertFalse(utils._is_seek_error({"wrongkey": "no attribute 'seek'"}))
+        self.assertFalse(utils._is_seek_error("notadict"))

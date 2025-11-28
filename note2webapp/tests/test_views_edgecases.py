@@ -4,6 +4,7 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth.models import Group
 from note2webapp.models import ModelUpload, ModelVersion, Profile
 
 
@@ -324,3 +325,95 @@ class MoreEdgeCaseViewsTests(TestCase):
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
         self.assertEqual(resp.status_code, 200)
+
+
+class ViewsAuthAndRoutingTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user("existing", password="password123")
+        Profile.objects.filter(user=self.user).update(role="uploader")
+
+    def test_signup_missing_fields(self):
+        resp = self.client.post(reverse("signup"), {})
+        self.assertContains(resp, "All fields are required.")
+
+    def test_signup_duplicate_username(self):
+        resp = self.client.post(
+            reverse("signup"),
+            {"username": "existing", "password1": "abcdefgh", "password2": "abcdefgh"},
+        )
+        self.assertContains(resp, "Username already exists.")
+
+    def test_signup_short_password(self):
+        resp = self.client.post(
+            reverse("signup"),
+            {"username": "newuser", "password1": "short", "password2": "short"},
+        )
+        self.assertContains(resp, "Password must be at least 8 characters long.")
+
+    def test_signup_success_creates_profile_and_group(self):
+        resp = self.client.post(
+            reverse("signup"),
+            {
+                "username": "newuser",
+                "password1": "strongpass",
+                "password2": "strongpass",
+            },
+            follow=True,
+        )
+        self.assertRedirects(resp, reverse("login"))
+        user = User.objects.get(username="newuser")
+        self.assertTrue(Profile.objects.filter(user=user, role="uploader").exists())
+        self.assertTrue(Group.objects.filter(name="ModelUploader").exists())
+
+    def test_signup_get_renders_login_page(self):
+        resp = self.client.get(reverse("signup"))
+        self.assertTemplateUsed(resp, "note2webapp/login.html")
+
+    def test_login_superuser_sets_admin_role(self):
+        admin = User.objects.create_superuser(
+            "admin", "admin@example.com", "strongpass"
+        )
+        _ = self.client.post(
+            reverse("login"),
+            {"username": "admin", "password": "strongpass"},
+            follow=True,
+        )
+        admin.refresh_from_db()
+        prof = Profile.objects.get(user=admin)
+        self.assertEqual(prof.role, "admin")
+
+    def test_login_invalid_credentials(self):
+        resp = self.client.post(
+            reverse("login"), {"username": "nouser", "password": "wrong"}
+        )
+        self.assertContains(resp, "Invalid username or password.")
+
+    def test_logout_clears_session_and_redirects(self):
+        self.client.login(username="existing", password="password123")
+        resp = self.client.get(reverse("logout"), follow=True)
+        self.assertRedirects(resp, reverse("login"))
+        self.assertContains(resp, "You have been logged out successfully.")
+
+    def test_dashboard_fallback_for_uploader(self):
+        self.client.login(username="existing", password="password123")
+        resp = self.client.get(reverse("dashboard"))
+        self.assertTemplateUsed(resp, "note2webapp/home.html")
+
+    def test_validation_failed_redirect_and_render(self):
+        upload = ModelUpload.objects.create(user=self.user, name="m1")
+        fail_version = ModelVersion.objects.create(
+            upload=upload, tag="v1", status="FAIL"
+        )
+        pass_version = ModelVersion.objects.create(
+            upload=upload, tag="v2", status="PASS"
+        )
+
+        # should render validation_failed.html
+        self.client.login(username="existing", password="password123")
+        resp = self.client.get(reverse("validation_failed", args=[fail_version.id]))
+        self.assertTemplateUsed(resp, "note2webapp/validation_failed.html")
+
+        # should redirect for non-fail
+        resp2 = self.client.get(reverse("validation_failed", args=[pass_version.id]))
+        self.assertEqual(resp2.status_code, 302)
