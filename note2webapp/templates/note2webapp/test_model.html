@@ -95,11 +95,62 @@
                             <div class="tm-result-header">
                                 <span>Success</span>
                             </div>
-                            {% if result.outputs %}
-                                <pre class="tm-result-output">{{ result.outputs|safe }}</pre>
-                            {% else %}
-                                <pre class="tm-result-output">{{ result|safe }}</pre>
-                            {% endif %}
+                            <div id="tm-result-output" class="tm-result-output" style="white-space: pre-wrap;"></div>
+                            {# Safely embed result as JSON for JS parsing #}
+                            {{ result|json_script:"model_result" }}
+
+                            <script>
+                                (function() {
+                                    try {
+                                        // Parse the safely embedded JSON data
+                                        const resultData = JSON.parse(
+                                            document.getElementById("model_result").textContent
+                                        );
+                                        const data = resultData.outputs || resultData.output || resultData;
+
+                                        function renderObject(obj, level = 0) {
+                                            let html = "";
+                                            const indent = "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(level);
+
+                                            if (Array.isArray(obj)) {
+                                                obj.forEach((item, i) => {
+                                                    html += `${indent}<b>Case ${i + 1}</b><br>`;
+                                                    html += renderObject(item, level + 1);
+                                                    html += "<br>";
+                                                });
+                                                return html;
+                                            }
+
+                                            if (typeof obj !== "object" || obj === null) {
+                                                return `${indent}${obj}<br>`;
+                                            }
+
+                                            for (const key in obj) {
+                                                if (!Object.hasOwn(obj, key)) continue;
+                                                const value = obj[key];
+                                                if (typeof value === "object" && value !== null) {
+                                                    html += `${indent}<b>${capitalize(key)}:</b><br>`;
+                                                    html += renderObject(value, level + 1);
+                                                } else {
+                                                    html += `${indent}<b>${capitalize(key)}:</b> ${value}<br>`;
+                                                }
+                                            }
+                                            return html;
+                                        }
+
+                                        function capitalize(str) {
+                                            return str.charAt(0).toUpperCase() + str.slice(1);
+                                        }
+
+                                        const outputHtml = renderObject(data);
+                                        document.getElementById("tm-result-output").innerHTML = outputHtml;
+                                    } catch (err) {
+                                        console.error("Error displaying model output:", err);
+                                        document.getElementById("tm-result-output").textContent =
+                                            "⚠️ Could not parse model output.";
+                                    }
+                                })();
+                            </script>
                         </div>
                     {% else %}
                         <div class="tm-result-error">
@@ -667,6 +718,19 @@
 .tm-comment-submit:hover {
     filter: brightness(1.1);
     transform: translateY(-1px);
+}
+
+.tm-result-output {
+    background-color: #000;
+    color: #4ade80;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    border-radius: 8px;
+    padding: 14px;
+}
+.tm-result-output b {
+    color: #60a5fa; /* blue key labels */
 }
 
 /* responsive */
