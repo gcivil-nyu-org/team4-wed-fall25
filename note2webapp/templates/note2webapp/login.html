@@ -5,7 +5,13 @@
   <!-- Logo -->
   <div class="auth-logo">
     <h1>🔐 Note2Web</h1>
-    <p>{% if request.path == '/signup/' %}Create your account to get started{% else %}Welcome back! Please login to continue{% endif %}</p>
+    <p>
+      {% if request.path == '/signup/' %}
+        Create your account to get started
+      {% else %}
+        Welcome back! Please login to continue
+      {% endif %}
+    </p>
   </div>
 
   <!-- Tabs -->
@@ -43,17 +49,17 @@
     </div>
 
     {% if request.path == '/signup/' %}
-    <div class="mb-3">
-      <label class="auth-form-label">Confirm Password</label>
-      <input 
-        type="password" 
-        name="password2" 
-        class="auth-form-control" 
-        placeholder="Confirm your password" 
-        required
-        autocomplete="new-password"
-      >
-    </div>
+      <div class="mb-3">
+        <label class="auth-form-label">Confirm Password</label>
+        <input 
+          type="password" 
+          name="password2" 
+          class="auth-form-control" 
+          placeholder="Confirm your password" 
+          required
+          autocomplete="new-password"
+        >
+      </div>
     {% endif %}
 
     <button type="submit" class="auth-submit-btn">
@@ -65,7 +71,7 @@
     </button>
   </form>
 
-  <!-- Error Messages -->
+  <!-- Form errors (e.g., invalid credentials, password mismatch) -->
   {% if form.errors %}
     <div class="alert alert-danger">
       <i class="fas fa-exclamation-circle"></i>
@@ -77,9 +83,10 @@
     </div>
   {% endif %}
 
+  <!-- Django messages framework -->
   {% if messages %}
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
         <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
         {{ message }}
       </div>

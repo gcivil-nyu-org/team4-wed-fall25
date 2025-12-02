@@ -31,13 +31,13 @@
     }
 
     @keyframes fadeIn {
-      from { 
-        opacity: 0; 
-        transform: translateY(20px); 
+      from {
+        opacity: 0;
+        transform: translateY(20px);
       }
-      to { 
-        opacity: 1; 
-        transform: translateY(0); 
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
@@ -185,22 +185,40 @@
 
     /* Alert messages */
     .alert {
+      margin-top: 16px;
+      padding: 10px 14px;
       border-radius: 10px;
-      border: none;
-      margin-top: 20px;
       font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-width: 1px;
+      border-style: solid;
+      color: #e5e7eb;
     }
 
+    .alert i {
+      flex-shrink: 0;
+    }
+
+    /* Treat Django 'error' and Bootstrap 'danger' the same */
+    .alert-error,
     .alert-danger {
-      background-color: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background-color: #b91c1c;   /* strong red */
+      border-color: #fecaca;       /* light red border */
+      color: #fee2e2;              /* very light text */
     }
 
     .alert-success {
-      background-color: rgba(16, 185, 129, 0.15);
-      color: #6ee7b7;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background-color: #15803d;   /* strong green */
+      border-color: #bbf7d0;
+      color: #dcfce7;
+    }
+
+    .alert-warning {
+      background-color: #92400e;   /* amber */
+      border-color: #fed7aa;
+      color: #fffbeb;
     }
 
     /* Footer text */
