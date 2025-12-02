@@ -597,6 +597,16 @@ function getCookie(name) {
               Test
             </a>
           {% endif %}
+          
+          <!-- Comments Button for each version -->
+          {% if not version.is_deleted %}
+            <a href="{% url 'model_comments' version.id %}?return_to=dashboard" 
+               class="badge badge-comments" 
+               style="background:#10b981;"
+               title="View comments and discussion for this version">
+              💬 Comments
+            </a>
+          {% endif %}
         </div>
       </div>
 
@@ -795,6 +805,24 @@ function getCookie(name) {
   font-size: 0.7rem;
   text-decoration: none;
   color: #fff !important;
+}
+
+/* comments badge */
+.badge-comments {
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-decoration: none;
+  color: #fff !important;
+  transition: all 0.2s ease;
+}
+
+.badge-comments:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  color: #fff !important;
+  text-decoration: none;
 }
 
 .version-log-block {

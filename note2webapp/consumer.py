@@ -11,13 +11,20 @@ logger = logging.getLogger(__name__)
 
 class ModelCommentConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.model_version_id = self.scope["url_route"]["kwargs"]["version_id"]
-        self.room_group_name = f"model_comments_{self.model_version_id}"
+        try:
+            self.model_version_id = self.scope["url_route"]["kwargs"]["version_id"]
+            self.room_group_name = f"model_comments_{self.model_version_id}"
 
-        # Join room group
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            # Join room group
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
-        await self.accept()
+            await self.accept()
+            logger.info(
+                f"WebSocket connected for model version {self.model_version_id}"
+            )
+        except Exception as e:
+            logger.error(f"Error connecting WebSocket: {e}")
+            await self.close()
 
     async def disconnect(self, close_code):
         # Leave room group
@@ -49,6 +56,7 @@ class ModelCommentConsumer(AsyncWebsocketConsumer):
                         "comment_id": comment_data["id"],
                         "parent_id": parent_id,
                         "timestamp": comment_data["timestamp"],
+                        "timestamp_utc": comment_data["timestamp_utc"],
                         "user_role": comment_data["user_role"],
                     },
                 )
@@ -68,6 +76,7 @@ class ModelCommentConsumer(AsyncWebsocketConsumer):
                     "comment_id": event["comment_id"],
                     "parent_id": event["parent_id"],
                     "timestamp": event["timestamp"],
+                    "timestamp_utc": event.get("timestamp_utc", event["timestamp"]),
                     "user_role": event["user_role"],
                 }
             )
@@ -93,6 +102,7 @@ class ModelCommentConsumer(AsyncWebsocketConsumer):
             return {
                 "id": comment.id,
                 "timestamp": comment.created_at.strftime("%b %d, %Y %I:%M %p"),
+                "timestamp_utc": comment.created_at.isoformat(),
                 "user_role": user.profile.role,
             }
         except (User.DoesNotExist, ModelVersion.DoesNotExist) as e:

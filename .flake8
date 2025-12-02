@@ -4,12 +4,15 @@ exclude =
     migrations,
     __pycache__,
     venv,
+    env,
     .git,
     .ebextensions,
     */migrations/*,
     */venv/*,
+    */env/*,
     media,
-    */media/*
+    */media/*,
+    */templates/*
 ignore = 
     E203,
     E501,

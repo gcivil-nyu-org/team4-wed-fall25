@@ -123,13 +123,6 @@
                         <td>
                             {% if not version.is_deleted %}
                                 <div class="vm-action-buttons">
-                                    <!-- Comments Button -->
-                                    <a href="{% url 'model_comments' version.id %}" 
-                                       class="vm-btn vm-btn-info" 
-                                       title="View comments and discussion">
-                                        💬 Comments
-                                    </a>
-
                                     {# Retry upload for failed versions #}
                                     {% if version.status == "FAIL" %}
                                         <a href="{% url 'dashboard' %}?page=add_version&pk={{ model_upload.id }}&retry={{ version.id }}"

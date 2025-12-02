@@ -55,4 +55,9 @@ urlpatterns = [
         views.generate_model_info,
         name="generate_model_info",
     ),
+    path(
+        "api/comment/<int:comment_id>/reaction/",
+        views.toggle_comment_reaction,
+        name="toggle_comment_reaction",
+    ),
 ]
