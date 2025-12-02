@@ -28,6 +28,9 @@ if load_dotenv is not None:
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # ---- Secrets (from environment) ----
+# Check if we're in development mode (default to True for local dev)
+DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
@@ -35,6 +38,14 @@ if not SECRET_KEY:
     if os.environ.get("CI") or os.environ.get("TRAVIS"):
         SECRET_KEY = "dummy-key-for-ci"
         print("INFO: Using dummy SECRET_KEY for CI environment.")
+    elif DEBUG:
+        # Local development fallback (only when DEBUG=True)
+        SECRET_KEY = (
+            "django-insecure-&o)&&#rx8x52xt-^45hwuzf*86x69zhy^bvh2z#q^nl%$61*%&"
+        )
+        print(
+            "WARNING: Using default SECRET_KEY for local development. Set DJANGO_SECRET_KEY for production."
+        )
     else:
         raise RuntimeError("DJANGO_SECRET_KEY is not set in environment")
 
@@ -43,10 +54,6 @@ if not OPENAI_API_KEY:
     print(
         "WARNING: OPENAI_API_KEY is not set – AI features depending on OpenAI will not work."
     )
-
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = [
     "*",

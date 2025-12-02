@@ -167,3 +167,37 @@ class ModelComment(models.Model):
 
     def is_reply(self):
         return self.parent is not None
+
+    def get_likes_count(self):
+        return self.reactions.filter(reaction_type="like").count()
+
+    def get_dislikes_count(self):
+        return self.reactions.filter(reaction_type="dislike").count()
+
+    def get_user_reaction(self, user):
+        try:
+            reaction = self.reactions.get(user=user)
+            return reaction.reaction_type
+        except CommentReaction.DoesNotExist:
+            return None
+
+
+class CommentReaction(models.Model):
+    REACTION_CHOICES = [
+        ("like", "Like"),
+        ("dislike", "Dislike"),
+    ]
+
+    comment = models.ForeignKey(
+        ModelComment, on_delete=models.CASCADE, related_name="reactions"
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reaction_type = models.CharField(max_length=10, choices=REACTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ["comment", "user"]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} {self.reaction_type}s comment {self.comment.id}"

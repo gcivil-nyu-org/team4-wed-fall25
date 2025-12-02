@@ -49,7 +49,7 @@
             </div>
             <div class="tm-info-item">
                 <span class="tm-info-label">Uploaded:</span>
-                <span class="tm-info-value">{{ version.created_at|date:"M d, Y H:i" }}</span>
+                <span class="tm-info-value utc-time" data-utc="{{ version.created_at_utc }}">{{ version.created_at|date:"M d, Y H:i" }}</span>
             </div>
         </div>
     </div>
@@ -165,10 +165,29 @@
                                         <span class="tm-badge tm-badge-success">Author</span>
                                         {% endif %}
                                     </h6>
-                                    <small class="tm-text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                                    <small class="tm-text-muted utc-time" data-utc="{{ comment.created_at_utc }}">{{ comment.created_at|date:"M d, Y H:i" }}</small>
                                 </div>
                                 <p class="tm-comment-content mb-1 mt-2">{{ comment.content }}</p>
-                                <button class="tm-reply-btn" data-comment-id="{{ comment.id }}">Reply</button>
+                                <div class="d-flex align-items-center gap-3 mt-2">
+                                    <button class="tm-reply-btn" data-comment-id="{{ comment.id }}">
+                                        <span>💬</span>
+                                        <span>Reply</span>
+                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-sm btn-outline-primary like-btn" 
+                                                data-comment-id="{{ comment.id }}"
+                                                data-reaction-type="like">
+                                            <span class="like-icon">👍</span>
+                                            <span class="like-count">{{ comment.get_likes_count }}</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                                                data-comment-id="{{ comment.id }}"
+                                                data-reaction-type="dislike">
+                                            <span class="dislike-icon">👎</span>
+                                            <span class="dislike-count">{{ comment.get_dislikes_count }}</span>
+                                        </button>
+                                    </div>
+                                </div>
                                 
                                 <!-- Replies -->
                                 {% if comment.replies.all %}
@@ -183,9 +202,23 @@
                                                 <span class="tm-badge tm-badge-success">Author</span>
                                                 {% endif %}
                                             </h6>
-                                            <small class="tm-text-muted">{{ reply.created_at|date:"M d, Y H:i" }}</small>
+                                            <small class="tm-text-muted utc-time" data-utc="{{ reply.created_at_utc }}">{{ reply.created_at|date:"M d, Y H:i" }}</small>
                                         </div>
                                         <p class="tm-comment-content mb-0 mt-1">{{ reply.content }}</p>
+                                        <div class="d-flex align-items-center gap-2 mt-2">
+                                            <button class="btn btn-sm btn-outline-primary like-btn" 
+                                                    data-comment-id="{{ reply.id }}"
+                                                    data-reaction-type="like">
+                                                <span class="like-icon">👍</span>
+                                                <span class="like-count">{{ reply.get_likes_count }}</span>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                                                    data-comment-id="{{ reply.id }}"
+                                                    data-reaction-type="dislike">
+                                                <span class="dislike-icon">👎</span>
+                                                <span class="dislike-count">{{ reply.get_dislikes_count }}</span>
+                                            </button>
+                                        </div>
                                     </div>
                                     {% endfor %}
                                 </div>
@@ -227,7 +260,7 @@
 <style>
 /* container */
 .test-model-shell {
-    max-width: 1000px;
+    max-width: 1400px;
     background-color: #1b1d22;
     border: 1px solid rgba(255,255,255,0.04);
     border-radius: 16px;
@@ -384,8 +417,8 @@
 /* Main split: Testing and Comments side by side */
 .tm-main-split {
     display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 20px;
+    grid-template-columns: 1.3fr 0.9fr;
+    gap: 24px;
     align-items: start;
 }
 
@@ -475,18 +508,23 @@
 }
 
 .tm-reply-btn {
-    background: none;
-    border: none;
-    color: #0dcaf0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #9ca3af;
     font-size: 0.85rem;
-    padding: 0;
     cursor: pointer;
-    text-decoration: none;
-    margin-top: 4px;
+    transition: all 0.2s ease;
 }
 
 .tm-reply-btn:hover {
-    text-decoration: underline;
+    background-color: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
 }
 
 .tm-replies {
@@ -503,6 +541,62 @@
     border: none;
     border-top: 1px solid rgba(255,255,255,0.05);
     margin: 12px 0;
+}
+
+/* Reaction buttons - smaller and transparent */
+.tm-comments-section .like-btn,
+.tm-comments-section .dislike-btn {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    padding: 3px 6px !important;
+    font-size: 0.7rem !important;
+    min-width: auto !important;
+    height: auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.2s ease;
+    color: rgba(255, 255, 255, 0.6) !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 1;
+}
+
+.tm-comments-section .like-btn:hover {
+    background: rgba(59, 130, 246, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+}
+
+.tm-comments-section .dislike-btn:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+}
+
+.tm-comments-section .like-btn.btn-primary,
+.tm-comments-section .like-btn.mc-active {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+    color: #60a5fa !important;
+}
+
+.tm-comments-section .dislike-btn.btn-danger,
+.tm-comments-section .dislike-btn.mc-active {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+}
+
+.tm-comments-section .like-icon,
+.tm-comments-section .dislike-icon {
+    font-size: 0.8rem;
+}
+
+.tm-comments-section .like-count,
+.tm-comments-section .dislike-count {
+    font-size: 0.65rem;
+    font-weight: 500;
 }
 
 .tm-comment-input {
@@ -576,6 +670,12 @@
 }
 
 /* responsive */
+@media (max-width: 1400px) {
+    .test-model-shell {
+        max-width: 95%;
+    }
+}
+
 @media (max-width: 1200px) {
     .tm-main-split {
         grid-template-columns: 1fr;
@@ -608,17 +708,34 @@
     let replyToCommentId = null;
     let replyToUsername = null;
     
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/model/' + versionId + '/comments/'
-    );
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = wsProtocol + '//' + window.location.host + '/ws/model/' + versionId + '/comments/';
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    const chatSocket = new WebSocket(wsUrl);
+
+    chatSocket.onopen = function(e) {
+        console.log('WebSocket connection opened successfully');
+    };
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         addCommentToUI(data);
     };
 
+    chatSocket.onerror = function(error) {
+        console.error('WebSocket error:', error);
+        console.error('WebSocket URL attempted:', wsUrl);
+        console.error('Make sure you are running the server with Daphne: daphne -b 127.0.0.1 -p 8000 note2web.asgi:application');
+    };
+
     chatSocket.onclose = function(e) {
-        console.error('WebSocket closed unexpectedly');
+        console.warn('WebSocket closed. Code:', e.code, 'Reason:', e.reason);
+        if (e.code !== 1000) {
+            console.error('WebSocket closed unexpectedly. Code:', e.code);
+            console.error('This usually means the server is not running with Daphne or WebSocket routing is not configured.');
+        }
     };
 
     function addCommentToUI(data) {
@@ -645,10 +762,32 @@
                         <span class="tm-badge tm-badge-info">${data.user_role}</span>
                         ${authorBadge}
                     </h6>
-                    <small class="tm-text-muted">${data.timestamp}</small>
+                    <small class="tm-text-muted utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</small>
                 </div>
                 <p class="tm-comment-content mb-0 mt-1">${data.message}</p>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <button class="btn btn-sm btn-outline-primary like-btn" 
+                            data-comment-id="${data.comment_id}"
+                            data-reaction-type="like">
+                        <span class="like-icon">👍</span>
+                        <span class="like-count">0</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                            data-comment-id="${data.comment_id}"
+                            data-reaction-type="dislike">
+                        <span class="dislike-icon">👎</span>
+                        <span class="dislike-count">0</span>
+                    </button>
+                </div>
             `;
+            
+            // For replies, add event listeners to like/dislike buttons
+            commentDiv.querySelectorAll('.like-btn, .dislike-btn').forEach(btn => {
+                if (!btn.hasAttribute('data-listener-attached')) {
+                    btn.setAttribute('data-listener-attached', 'true');
+                    btn.addEventListener('click', handleReactionClick);
+                }
+            });
         } else {
             commentDiv.innerHTML = `
                 <div class="d-flex">
@@ -664,18 +803,33 @@
                                 <span class="tm-badge tm-badge-info">${data.user_role}</span>
                                 ${authorBadge}
                             </h6>
-                            <small class="tm-text-muted">${data.timestamp}</small>
+                            <small class="tm-text-muted utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</small>
                         </div>
                         <p class="tm-comment-content mb-1 mt-2">${data.message}</p>
-                        <button class="tm-reply-btn" data-comment-id="${data.comment_id}">Reply</button>
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            <button class="tm-reply-btn" data-comment-id="${data.comment_id}">
+                                <span>💬</span>
+                                <span>Reply</span>
+                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-primary like-btn" 
+                                        data-comment-id="${data.comment_id}"
+                                        data-reaction-type="like">
+                                    <span class="like-icon">👍</span>
+                                    <span class="like-count">0</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                                        data-comment-id="${data.comment_id}"
+                                        data-reaction-type="dislike">
+                                    <span class="dislike-icon">👎</span>
+                                    <span class="dislike-count">0</span>
+                                </button>
+                            </div>
+                        </div>
                         <div class="tm-replies ms-4 mt-2" id="replies-${data.comment_id}"></div>
                     </div>
                 </div>
             `;
-            
-            const hr = document.createElement('hr');
-            hr.className = 'tm-comment-divider';
-            container.appendChild(hr);
             
             // Add event listener to new reply button
             const replyBtn = commentDiv.querySelector('.tm-reply-btn');
@@ -684,11 +838,177 @@
                     handleReplyClick(this);
                 });
             }
+            
+            // Add event listeners to like/dislike buttons
+            commentDiv.querySelectorAll('.like-btn, .dislike-btn').forEach(btn => {
+                if (!btn.hasAttribute('data-listener-attached')) {
+                    btn.setAttribute('data-listener-attached', 'true');
+                    btn.addEventListener('click', handleReactionClick);
+                }
+            });
+            
+            // Add divider for main comments
+            const hr = document.createElement('hr');
+            hr.className = 'tm-comment-divider';
+            container.appendChild(hr);
         }
         
         container.appendChild(commentDiv);
+        
+        // Update UTC times for the newly added comment
+        const timeElement = commentDiv.querySelector('.utc-time');
+        if (timeElement && timeElement.dataset.utc) {
+            timeElement.textContent = formatToLocalTime(timeElement.dataset.utc);
+        }
+        
         container.scrollTop = container.scrollHeight;
     }
+    
+    // Function to attach reaction listeners
+    function attachReactionListeners() {
+        document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+            // Check if listener already attached
+            if (!button.hasAttribute('data-listener-attached')) {
+                button.setAttribute('data-listener-attached', 'true');
+                button.addEventListener('click', handleReactionClick);
+            }
+        });
+    }
+    
+    // Handle like/dislike button clicks
+    function handleReactionClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const button = e.currentTarget;
+        const commentId = button.getAttribute('data-comment-id');
+        const reactionType = button.getAttribute('data-reaction-type');
+        
+        if (!commentId || !reactionType) {
+            console.error('Missing comment ID or reaction type', { commentId, reactionType });
+            return;
+        }
+        
+        console.log('Reaction click:', { commentId, reactionType });
+        
+        // Disable button during request
+        button.disabled = true;
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('reaction_type', reactionType);
+        
+        // Send request
+        fetch(`/api/comment/${commentId}/reaction/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update counts
+                const commentDiv = document.getElementById(`comment-${commentId}`);
+                if (commentDiv) {
+                    const likeBtn = commentDiv.querySelector('.like-btn');
+                    const dislikeBtn = commentDiv.querySelector('.dislike-btn');
+                    const likeCount = commentDiv.querySelector('.like-count');
+                    const dislikeCount = commentDiv.querySelector('.dislike-count');
+                    
+                    if (likeCount) likeCount.textContent = data.likes_count;
+                    if (dislikeCount) dislikeCount.textContent = data.dislikes_count;
+                    
+                    // Update button states
+                    if (data.user_reaction === 'like') {
+                        likeBtn.classList.remove('btn-outline-primary');
+                        likeBtn.classList.add('btn-primary');
+                        dislikeBtn.classList.remove('btn-danger');
+                        dislikeBtn.classList.add('btn-outline-danger');
+                    } else if (data.user_reaction === 'dislike') {
+                        dislikeBtn.classList.remove('btn-outline-danger');
+                        dislikeBtn.classList.add('btn-danger');
+                        likeBtn.classList.remove('btn-primary');
+                        likeBtn.classList.add('btn-outline-primary');
+                    } else {
+                        // No reaction
+                        likeBtn.classList.remove('btn-primary');
+                        likeBtn.classList.add('btn-outline-primary');
+                        dislikeBtn.classList.remove('btn-danger');
+                        dislikeBtn.classList.add('btn-outline-danger');
+                    }
+                    
+                    // Re-attach event listeners after DOM updates
+                    setTimeout(() => {
+                        attachReactionListeners();
+                    }, 50);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            button.disabled = false;
+        });
+    }
+    
+    // Get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Attach listeners when DOM is ready
+    function initReactionButtons() {
+        attachReactionListeners();
+        console.log('Initialized reaction buttons, found:', document.querySelectorAll('.like-btn, .dislike-btn').length);
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initReactionButtons);
+    } else {
+        initReactionButtons();
+    }
+    
+    // Also attach listeners after a short delay to catch any dynamically loaded buttons
+    setTimeout(initReactionButtons, 500);
+    
+    // Set initial button states based on user reactions
+    let userReactions = {};
+    try {
+        userReactions = {{ user_reactions|safe|default:"{}" }};
+    } catch (e) {
+        console.error('Error parsing user reactions:', e);
+        userReactions = {};
+    }
+    Object.keys(userReactions).forEach(commentId => {
+        const commentDiv = document.getElementById(`comment-${commentId}`);
+        if (commentDiv) {
+            const likeBtn = commentDiv.querySelector('.like-btn');
+            const dislikeBtn = commentDiv.querySelector('.dislike-btn');
+            const reactionType = userReactions[commentId];
+            
+            if (reactionType === 'like' && likeBtn) {
+                likeBtn.classList.remove('btn-outline-primary');
+                likeBtn.classList.add('btn-primary');
+            } else if (reactionType === 'dislike' && dislikeBtn) {
+                dislikeBtn.classList.remove('btn-outline-danger');
+                dislikeBtn.classList.add('btn-danger');
+            }
+        }
+    });
 
     function handleReplyClick(button) {
         const commentId = button.getAttribute('data-comment-id');
@@ -742,5 +1062,54 @@
             }
         }
     });
+
+    // Convert UTC timestamps to local device time
+    function formatToLocalTime(utcString) {
+        if (!utcString) return '';
+        
+        // Parse the ISO 8601 UTC string (should include timezone info)
+        const date = new Date(utcString);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date string:', utcString);
+            return utcString; // Return original if parsing fails
+        }
+        
+        // Format to local time
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return date.toLocaleString(undefined, options);
+    }
+
+    function updateUTCTimes() {
+        document.querySelectorAll('.utc-time').forEach(el => {
+            const utc = el.dataset.utc;
+            if (utc) {
+                const localTime = formatToLocalTime(utc);
+                if (localTime) {
+                    el.textContent = localTime;
+                }
+            }
+        });
+    }
+
+    // Run UTC time conversion on page load
+    document.addEventListener("DOMContentLoaded", function() {
+        updateUTCTimes();
+    });
+
+    // Also run immediately if DOM is already loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateUTCTimes);
+    } else {
+        updateUTCTimes();
+    }
+
 </script>
 {% endblock %}

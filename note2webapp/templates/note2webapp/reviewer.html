@@ -301,18 +301,7 @@
                 <a href="{% url 'test_model_cpu' active_version.id %}?return_to=reviewer&model_id={{ upload.id }}" 
                    class="rvd-btn rvd-btn-primary">
                     <i class="fas fa-vial"></i>
-                    <span>Test on CPU</span>
-                </a>
-                
-                <a href="{% url 'model_comments' active_version.id %}" 
-                   class="rvd-btn rvd-btn-success">
-                    <i class="fas fa-comments"></i>
-                    <span>Discussion</span>
-                </a>
-                
-                <a href="?page=add_feedback&pk={{ active_version.pk }}" class="rvd-btn rvd-btn-secondary">
-                    <i class="fas fa-comment-dots"></i>
-                    <span>Add Feedback</span>
+                    <span>Test and Discussion</span>
                 </a>
             </div>
         {% else %}

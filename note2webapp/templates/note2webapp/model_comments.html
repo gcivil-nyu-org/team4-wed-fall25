@@ -1,216 +1,210 @@
 {% extends 'base.html' %}
 
-
-
 {% block content %}
 
-<div class="container mt-4">
-
-    <div class="row">
-
-        <div class="col-md-12">
-
-            <div class="card mb-4">
-
-                <div class="card-header">
-
-                    <h4>{{ version.upload.name }} - {{ version.tag }}</h4>
-
-                    <p class="mb-0 text-muted">
-
-                        Uploaded by: <strong>{{ version.upload.user.username }}</strong> | 
-
-                        Status: <span class="badge bg-{{ version.status|lower }}">{{ version.status }}</span>
-
-                    </p>
-
-                </div>
-
-                <div class="card-body">
-
-                    {% if version.information %}
-
-                    <p><strong>Model Information:</strong> {{ version.information }}</p>
-
-                    {% endif %}
-
-                </div>
-
-            </div>
-
-
-
-            <div class="card">
-
-                <div class="card-header">
-
-                    <h5>Discussion & Feedback</h5>
-
-                </div>
-
-                <div class="card-body">
-
-                    <!-- Comments Container -->
-
-                    <div id="comments-container" style="max-height: 500px; overflow-y: auto;">
-
-                        {% for comment in comments %}
-
-                        <div class="comment mb-3" id="comment-{{ comment.id }}" data-comment-id="{{ comment.id }}">
-
-                            <div class="d-flex">
-
-                                <div class="flex-shrink-0">
-
-                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
-
-                                         style="width: 40px; height: 40px;">
-
-                                        {{ comment.user.username|slice:":1"|upper }}
-
-                                    </div>
-
-                                </div>
-
-                                <div class="flex-grow-1 ms-3">
-
-                                    <div class="d-flex justify-content-between">
-
-                                        <h6 class="mb-0">
-
-                                            {{ comment.user.username }}
-
-                                            <span class="badge bg-info text-dark ms-2">{{ comment.user.profile.role }}</span>
-
-                                            {% if comment.user == version.upload.user %}
-
-                                            <span class="badge bg-success ms-1">Author</span>
-
-                                            {% endif %}
-
-                                        </h6>
-
-                                        <small class="text-muted">{{ comment.created_at|date:"M d, Y H:i" }}</small>
-
-                                    </div>
-
-                                    <p class="mb-1 mt-2">{{ comment.content }}</p>
-
-                                    <button class="btn btn-sm btn-link p-0 reply-btn" data-comment-id="{{ comment.id }}">Reply</button>
-
-                                    
-
-                                    <!-- Replies -->
-
-                                    {% if comment.replies.all %}
-
-                                    <div class="replies ms-4 mt-2" id="replies-{{ comment.id }}">
-
-                                        {% for reply in comment.replies.all %}
-
-                                        <div class="reply mb-2 border-start border-2 ps-3">
-
-                                            <div class="d-flex justify-content-between">
-
-                                                <h6 class="mb-0">
-
-                                                    {{ reply.user.username }}
-
-                                                    <span class="badge bg-info text-dark ms-2">{{ reply.user.profile.role }}</span>
-
-                                                    {% if reply.user == version.upload.user %}
-
-                                                    <span class="badge bg-success ms-1">Author</span>
-
-                                                    {% endif %}
-
-                                                </h6>
-
-                                                <small class="text-muted">{{ reply.created_at|date:"M d, Y H:i" }}</small>
-
-                                            </div>
-
-                                            <p class="mb-0 mt-1">{{ reply.content }}</p>
-
-                                        </div>
-
-                                        {% endfor %}
-
-                                    </div>
-
-                                    {% else %}
-
-                                    <div class="replies ms-4 mt-2" id="replies-{{ comment.id }}"></div>
-
-                                    {% endif %}
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                        <hr>
-
-                        {% empty %}
-
-                        <p class="text-muted text-center">No comments yet. Be the first to comment!</p>
-
-                        {% endfor %}
-
-                    </div>
-
-
-
-                    <!-- Comment Input -->
-
-                    <div class="mt-3">
-
-                        <div id="reply-indicator" class="alert alert-info d-none mb-2">
-
-                            Replying to <strong id="reply-to-user"></strong>
-
-                            <button type="button" class="btn-close float-end" id="cancel-reply"></button>
-
-                        </div>
-
-                        <div class="input-group">
-
-                            <input 
-
-                                id="comment-input" 
-
-                                type="text" 
-
-                                class="form-control" 
-
-                                placeholder="Add a comment..."
-
-                            >
-
-                            <button id="comment-submit" class="btn btn-primary">
-
-                                <span id="submit-text">Comment</span>
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+<div class="mc-container">
+    <div class="mc-page-card">
+        <!-- Back Button -->
+        <div class="mc-back-section">
+            <a href="{{ back_url }}" class="mc-back-btn">
+                <span>←</span>
+                <span>Back</span>
+            </a>
         </div>
 
-    </div>
+        <div class="mc-content-wrapper">
+            <!-- Model Info Card -->
+            <div class="mc-model-card">
+            <div class="mc-model-header">
+                <h3 class="mc-model-title">{{ version.upload.name }} - {{ version.tag }}</h3>
+                <div class="mc-model-meta">
+                    <span class="mc-meta-item">
+                        <span class="mc-meta-label">Uploaded by:</span>
+                        <strong>{{ version.upload.user.username }}</strong>
+                    </span>
+                    <span class="mc-meta-divider">•</span>
+                    <span class="mc-meta-item">
+                        <span class="mc-meta-label">Status:</span>
+                        <span class="mc-status-badge mc-status-{{ version.status|lower }}">{{ version.status }}</span>
+                    </span>
+                </div>
+            </div>
 
+            {% if version.information %}
+            <div class="mc-model-info">
+                <p class="mc-info-text">{{ version.information }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+            <!-- Comments Card -->
+            <div class="mc-comments-card">
+            <div class="mc-comments-header">
+                <h4 class="mc-comments-title">💬 Discussion & Feedback</h4>
+            </div>
+
+            <div class="mc-comments-body">
+                <!-- Comments Container -->
+                <div id="comments-container" class="mc-comments-container">
+
+                    {% for comment in comments %}
+                    <div class="mc-comment" id="comment-{{ comment.id }}" data-comment-id="{{ comment.id }}">
+                        <div class="mc-comment-inner">
+                            <div class="mc-comment-avatar">
+                                {{ comment.user.username|slice:":1"|upper }}
+                            </div>
+                            
+                            <div class="mc-comment-content">
+                                <div class="mc-comment-header">
+                                    <div class="mc-comment-author">
+                                        <span class="mc-author-name">{{ comment.user.username }}</span>
+                                        <span class="mc-role-badge mc-role-{{ comment.user.profile.role|lower }}">{{ comment.user.profile.role }}</span>
+                                        {% if comment.user == version.upload.user %}
+                                        <span class="mc-author-badge">Author</span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="mc-comment-time utc-time" data-utc="{{ comment.created_at_utc }}">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                                </div>
+                                
+                                <p class="mc-comment-text">{{ comment.content }}</p>
+                                
+                                <div class="mc-comment-actions">
+                                    <button class="mc-reply-btn" data-comment-id="{{ comment.id }}">
+                                        <span>💬</span>
+                                        <span>Reply</span>
+                                    </button>
+                                    
+                                    <div class="mc-reaction-buttons">
+                                        <button class="mc-like-btn" 
+                                                data-comment-id="{{ comment.id }}"
+                                                data-reaction-type="like">
+                                            <span class="mc-reaction-icon">👍</span>
+                                            <span class="mc-reaction-count like-count">{{ comment.get_likes_count }}</span>
+                                        </button>
+                                        <button class="mc-dislike-btn" 
+                                                data-comment-id="{{ comment.id }}"
+                                                data-reaction-type="dislike">
+                                            <span class="mc-reaction-icon">👎</span>
+                                            <span class="mc-reaction-count dislike-count">{{ comment.get_dislikes_count }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                
+                                <!-- Replies -->
+                                {% if comment.replies.all %}
+                                <div class="mc-replies" id="replies-{{ comment.id }}">
+                                    {% for reply in comment.replies.all %}
+                                    <div class="mc-reply" id="comment-{{ reply.id }}" data-comment-id="{{ reply.id }}">
+                                        <div class="mc-reply-header">
+                                            <div class="mc-reply-author">
+                                                <span class="mc-author-name">{{ reply.user.username }}</span>
+                                                <span class="mc-role-badge mc-role-{{ reply.user.profile.role|lower }}">{{ reply.user.profile.role }}</span>
+                                                {% if reply.user == version.upload.user %}
+                                                <span class="mc-author-badge">Author</span>
+                                                {% endif %}
+                                            </div>
+                                            <span class="mc-comment-time utc-time" data-utc="{{ reply.created_at_utc }}">{{ reply.created_at|date:"M d, Y H:i" }}</span>
+                                        </div>
+                                        <p class="mc-reply-text">{{ reply.content }}</p>
+                                        <div class="mc-reaction-buttons mc-reply-reactions">
+                                            <button class="mc-like-btn" 
+                                                    data-comment-id="{{ reply.id }}"
+                                                    data-reaction-type="like">
+                                                <span class="mc-reaction-icon">👍</span>
+                                                <span class="mc-reaction-count like-count">{{ reply.get_likes_count }}</span>
+                                            </button>
+                                            <button class="mc-dislike-btn" 
+                                                    data-comment-id="{{ reply.id }}"
+                                                    data-reaction-type="dislike">
+                                                <span class="mc-reaction-icon">👎</span>
+                                                <span class="mc-reaction-count dislike-count">{{ reply.get_dislikes_count }}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="mc-replies" id="replies-{{ comment.id }}"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="mc-empty-state" id="mc-empty-state">
+                        <div class="mc-empty-icon">💬</div>
+                        <p class="mc-empty-text">No comments yet. Be the first to comment!</p>
+                    </div>
+                    {% endfor %}
+
+                </div>
+
+                <!-- Comment Input -->
+                <div class="mc-input-section">
+                    <div id="reply-indicator" class="mc-reply-indicator d-none">
+                        <div class="mc-reply-indicator-content">
+                            <span class="mc-reply-label">Replying to</span>
+                            <strong id="reply-to-user" class="mc-reply-user"></strong>
+                        </div>
+                        <button type="button" class="mc-cancel-reply" id="cancel-reply">×</button>
+                    </div>
+
+                    <div class="mc-input-wrapper">
+                        <input 
+                            id="comment-input" 
+                            type="text" 
+                            class="mc-comment-input" 
+                            placeholder="Add a comment..."
+                        >
+                        <button id="comment-submit" class="mc-submit-btn">
+                            <span id="submit-text">Comment</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 
 
 <script>
+    // Convert UTC timestamps to local device time
+    function formatToLocalTime(utcString) {
+        if (!utcString) return '';
+        
+        // Parse the ISO 8601 UTC string (should include timezone info)
+        const date = new Date(utcString);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date string:', utcString);
+            return utcString; // Return original if parsing fails
+        }
+        
+        // Format to local time
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return date.toLocaleString(undefined, options);
+    }
+
+    function updateUTCTimes() {
+        document.querySelectorAll('.utc-time').forEach(el => {
+            const utc = el.dataset.utc;
+            if (utc) {
+                const localTime = formatToLocalTime(utc);
+                if (localTime) {
+                    el.textContent = localTime;
+                }
+            }
+        });
+    }
 
     const versionId = "{{ version.id }}";
 
@@ -218,7 +212,7 @@
 
     const userRole = "{{ request.user.profile.role }}";
 
-    const isAuthor = {{ is_uploader|lower }};
+    const isAuthor = "{{ is_uploader|yesno:'true,false' }}" === "true";
 
     
 
@@ -272,7 +266,7 @@
 
         const commentDiv = document.createElement('div');
 
-        commentDiv.className = isReply ? 'reply mb-2 border-start border-2 ps-3' : 'comment mb-3';
+        commentDiv.className = isReply ? 'mc-reply' : 'mc-comment';
 
         commentDiv.id = `comment-${data.comment_id}`;
 
@@ -286,84 +280,110 @@
 
         
 
-        commentDiv.innerHTML = `
-
-            <div class="${isReply ? '' : 'd-flex'}">
-
-                ${!isReply ? `
-
-                <div class="flex-shrink-0">
-
-                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
-
-                         style="width: 40px; height: 40px;">
-
-                        ${data.username.charAt(0).toUpperCase()}
-
+        if (isReply) {
+            commentDiv.innerHTML = `
+                <div class="mc-reply-header">
+                    <div class="mc-reply-author">
+                        <span class="mc-author-name">${data.username}</span>
+                        <span class="mc-role-badge mc-role-${data.user_role.toLowerCase()}">${data.user_role}</span>
+                        ${authorBadge}
                     </div>
-
-                </div>` : ''}
-
-                <div class="${isReply ? '' : 'flex-grow-1 ms-3'}">
-
-                    <div class="d-flex justify-content-between">
-
-                        <h6 class="mb-0">
-
-                            ${data.username}
-
-                            <span class="badge bg-info text-dark ms-2">${data.user_role}</span>
-
-                            ${authorBadge}
-
-                        </h6>
-
-                        <small class="text-muted">${data.timestamp}</small>
-
-                    </div>
-
-                    <p class="mb-${isReply ? '0' : '1'} mt-${isReply ? '1' : '2'}">${data.message}</p>
-
-                    ${!isReply ? `
-
-                    <button class="btn btn-sm btn-link p-0 reply-btn" data-comment-id="${data.comment_id}">Reply</button>
-
-                    <div class="replies ms-4 mt-2" id="replies-${data.comment_id}"></div>
-
-                    ` : ''}
-
+                    <span class="mc-comment-time utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</span>
                 </div>
-
-            </div>
-
-        `;
-
-        
-
-        container.appendChild(commentDiv);
-
-        
-
-        if (!isReply) {
-
-            const hr = document.createElement('hr');
-
-            container.appendChild(hr);
-
+                <p class="mc-reply-text">${data.message}</p>
+                <div class="mc-reaction-buttons mc-reply-reactions">
+                    <button class="mc-like-btn" 
+                            data-comment-id="${data.comment_id}"
+                            data-reaction-type="like">
+                        <span class="mc-reaction-icon">👍</span>
+                        <span class="mc-reaction-count like-count">0</span>
+                    </button>
+                    <button class="mc-dislike-btn" 
+                            data-comment-id="${data.comment_id}"
+                            data-reaction-type="dislike">
+                        <span class="mc-reaction-icon">👎</span>
+                        <span class="mc-reaction-count dislike-count">0</span>
+                    </button>
+                </div>
+            `;
             
-
-            // Add event listener to new reply button
-
-            commentDiv.querySelector('.reply-btn').addEventListener('click', function() {
-
-                handleReplyClick(this);
-
+            // Ensure the commentDiv has the correct ID
+            commentDiv.id = `comment-${data.comment_id}`;
+            commentDiv.setAttribute('data-comment-id', data.comment_id);
+            
+            // For replies, add event listeners to like/dislike buttons
+            commentDiv.querySelectorAll('.mc-like-btn, .mc-dislike-btn').forEach(btn => {
+                btn.addEventListener('click', handleReactionClick);
             });
-
+        } else {
+            commentDiv.innerHTML = `
+                <div class="mc-comment-inner">
+                    <div class="mc-comment-avatar">
+                        ${data.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="mc-comment-content">
+                        <div class="mc-comment-header">
+                            <div class="mc-comment-author">
+                                <span class="mc-author-name">${data.username}</span>
+                                <span class="mc-role-badge mc-role-${data.user_role.toLowerCase()}">${data.user_role}</span>
+                                ${authorBadge}
+                            </div>
+                            <span class="mc-comment-time utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</span>
+                        </div>
+                        <p class="mc-comment-text">${data.message}</p>
+                        <div class="mc-comment-actions">
+                            <button class="mc-reply-btn" data-comment-id="${data.comment_id}">
+                                <span>💬</span>
+                                <span>Reply</span>
+                            </button>
+                            <div class="mc-reaction-buttons">
+                                <button class="mc-like-btn" 
+                                        data-comment-id="${data.comment_id}"
+                                        data-reaction-type="like">
+                                    <span class="mc-reaction-icon">👍</span>
+                                    <span class="mc-reaction-count like-count">0</span>
+                                </button>
+                                <button class="mc-dislike-btn" 
+                                        data-comment-id="${data.comment_id}"
+                                        data-reaction-type="dislike">
+                                    <span class="mc-reaction-icon">👎</span>
+                                    <span class="mc-reaction-count dislike-count">0</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mc-replies" id="replies-${data.comment_id}"></div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listener to new reply button
+            const replyBtn = commentDiv.querySelector('.mc-reply-btn');
+            if (replyBtn) {
+                replyBtn.addEventListener('click', function() {
+                    handleReplyClick(this);
+                });
+            }
+            
+            // Add event listeners to like/dislike buttons
+            commentDiv.querySelectorAll('.mc-like-btn, .mc-dislike-btn').forEach(btn => {
+                btn.addEventListener('click', handleReactionClick);
+            });
         }
-
         
-
+        container.appendChild(commentDiv);
+        
+        // Hide empty state if it exists (when first comment is added)
+        const emptyState = document.getElementById('mc-empty-state');
+        if (emptyState) {
+            emptyState.style.display = 'none';
+        }
+        
+        // Update UTC times for the newly added comment
+        const timeElement = commentDiv.querySelector('.utc-time');
+        if (timeElement && timeElement.dataset.utc) {
+            timeElement.textContent = formatToLocalTime(timeElement.dataset.utc);
+        }
+        
         container.scrollTop = container.scrollHeight;
 
     }
@@ -371,12 +391,9 @@
 
 
     function handleReplyClick(button) {
-
         const commentId = button.getAttribute('data-comment-id');
-
         const commentDiv = document.getElementById(`comment-${commentId}`);
-
-        const username = commentDiv.querySelector('h6').textContent.trim().split('\n')[0].trim();
+        const username = commentDiv.querySelector('.mc-author-name').textContent.trim();
 
         
 
@@ -413,15 +430,10 @@
 
 
     // Add event listeners to existing reply buttons
-
-    document.querySelectorAll('.reply-btn').forEach(button => {
-
+    document.querySelectorAll('.mc-reply-btn').forEach(button => {
         button.addEventListener('click', function() {
-
             handleReplyClick(this);
-
         });
-
     });
 
 
@@ -437,6 +449,150 @@
     });
 
 
+
+    // Handle like/dislike button clicks
+    function handleReactionClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const button = e.currentTarget;
+        const commentId = button.getAttribute('data-comment-id');
+        const reactionType = button.getAttribute('data-reaction-type');
+        
+        if (!commentId || !reactionType) {
+            console.error('Missing comment ID or reaction type', { commentId, reactionType });
+            return;
+        }
+        
+        // Disable button during request
+        button.disabled = true;
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('reaction_type', reactionType);
+        
+        // Send request
+        fetch(`/api/comment/${commentId}/reaction/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Reaction response:', data);
+            if (data.success) {
+                // Update counts - try multiple ways to find the comment div
+                let commentDiv = document.getElementById(`comment-${commentId}`);
+                if (!commentDiv) {
+                    // Try finding by data attribute
+                    commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
+                }
+                
+                if (commentDiv) {
+                    console.log('Found comment div:', commentDiv);
+                    const likeBtn = commentDiv.querySelector('.mc-like-btn');
+                    const dislikeBtn = commentDiv.querySelector('.mc-dislike-btn');
+                    const likeCount = commentDiv.querySelector('.like-count');
+                    const dislikeCount = commentDiv.querySelector('.dislike-count');
+                    
+                    console.log('Found elements:', { likeBtn, dislikeBtn, likeCount, dislikeCount });
+                    console.log('Counts to update:', { likes: data.likes_count, dislikes: data.dislikes_count });
+                    
+                    if (likeCount) {
+                        likeCount.textContent = data.likes_count;
+                        console.log('Updated like count to:', data.likes_count);
+                    } else {
+                        console.warn('Like count element not found');
+                    }
+                    
+                    if (dislikeCount) {
+                        dislikeCount.textContent = data.dislikes_count;
+                        console.log('Updated dislike count to:', data.dislikes_count);
+                    } else {
+                        console.warn('Dislike count element not found');
+                    }
+                    
+                    // Update button states
+                    if (likeBtn && dislikeBtn) {
+                        if (data.user_reaction === 'like') {
+                            likeBtn.classList.add('mc-active');
+                            dislikeBtn.classList.remove('mc-active');
+                            console.log('Set like button active');
+                        } else if (data.user_reaction === 'dislike') {
+                            dislikeBtn.classList.add('mc-active');
+                            likeBtn.classList.remove('mc-active');
+                            console.log('Set dislike button active');
+                        } else {
+                            // No reaction
+                            likeBtn.classList.remove('mc-active');
+                            dislikeBtn.classList.remove('mc-active');
+                            console.log('Removed active state from both buttons');
+                        }
+                    } else {
+                        console.warn('Like or dislike button not found');
+                    }
+                } else {
+                    console.error('Comment div not found for ID:', commentId);
+                }
+            } else {
+                console.error('API returned success=false:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            button.disabled = false;
+        });
+    }
+    
+    // Get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Add event listeners to existing like/dislike buttons
+    document.querySelectorAll('.mc-like-btn, .mc-dislike-btn').forEach(button => {
+        button.addEventListener('click', handleReactionClick);
+    });
+    
+    // Set initial button states based on user reactions
+    let userReactions = {};
+    try {
+        // Safely inject JSON using escapejs to avoid breaking the script
+        const reactionsJson = '{{ user_reactions|default:"{}"|escapejs }}';
+        userReactions = JSON.parse(reactionsJson);
+    } catch (e) {
+        console.error('Error parsing user reactions:', e);
+        userReactions = {};
+    }
+    Object.keys(userReactions).forEach(commentId => {
+        const commentDiv = document.getElementById(`comment-${commentId}`);
+        if (commentDiv) {
+            const likeBtn = commentDiv.querySelector('.mc-like-btn');
+            const dislikeBtn = commentDiv.querySelector('.mc-dislike-btn');
+            const reactionType = userReactions[commentId];
+            
+            if (reactionType === 'like' && likeBtn) {
+                likeBtn.classList.add('mc-active');
+            } else if (reactionType === 'dislike' && dislikeBtn) {
+                dislikeBtn.classList.add('mc-active');
+            }
+        }
+    });
 
     document.getElementById('comment-submit').addEventListener('click', function() {
 
@@ -476,46 +632,571 @@
 
     });
 
+    // Run UTC time conversion on page load
+    function updateUTCTimes() {
+        document.querySelectorAll('.utc-time').forEach(el => {
+            const utc = el.dataset.utc;
+            if (utc) {
+                el.textContent = formatToLocalTime(utc);
+            }
+        });
+    }
+
+    // Run on page load
+    document.addEventListener("DOMContentLoaded", function() {
+        updateUTCTimes();
+    });
+
+    // Also run immediately if DOM is already loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateUTCTimes);
+    } else {
+        updateUTCTimes();
+    }
+
 </script>
 
 
 
 <style>
+/* Main Container */
+.mc-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0;
+    background-color: transparent;
+    min-height: auto;
+}
 
-    .comment {
+.mc-page-card {
+    background: linear-gradient(135deg, #1a1c22 0%, #121318 100%);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.35);
+}
 
-        animation: fadeIn 0.3s;
+.mc-back-section {
+    margin-bottom: 20px;
+}
 
+.mc-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.mc-back-btn:hover {
+    background-color: #2a2d35;
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+    text-decoration: none;
+    transform: translateX(-2px);
+}
+
+.mc-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Model Info Card */
+.mc-model-card {
+    background: linear-gradient(135deg, #24272d 0%, #1e2126 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.mc-model-header {
+    margin-bottom: 16px;
+}
+
+.mc-model-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 12px 0;
+}
+
+.mc-model-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.mc-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    color: #8f96a3;
+}
+
+.mc-meta-label {
+    color: #6b7280;
+}
+
+.mc-meta-divider {
+    color: #4b5563;
+}
+
+.mc-status-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.mc-status-pass {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.mc-status-fail {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.mc-model-info {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.mc-info-text {
+    color: #d1d5db;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Comments Card */
+.mc-comments-card {
+    background: linear-gradient(135deg, #24272d 0%, #1e2126 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 200px);
+}
+
+.mc-comments-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(135deg, #2a2d35 0%, #24272d 100%);
+}
+
+.mc-comments-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+}
+
+.mc-comments-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.mc-comments-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    max-height: calc(100vh - 400px);
+}
+
+.mc-comments-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.mc-comments-container::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+}
+
+.mc-comments-container::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+.mc-comments-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Comment Styles */
+.mc-comment {
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.mc-comment-inner {
+    display: flex;
+    gap: 12px;
+}
+
+.mc-comment-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.mc-comment-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.mc-comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mc-comment-author, .mc-reply-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mc-author-name {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.mc-role-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.mc-role-reviewer {
+    background-color: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+}
+
+.mc-role-uploader {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+}
+
+.mc-author-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.mc-comment-time {
+    font-size: 0.8rem;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.mc-comment-text, .mc-reply-text {
+    color: #d1d5db;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 8px 0;
+    word-wrap: break-word;
+}
+
+.mc-comment-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.mc-reply-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mc-reply-btn:hover {
+    background-color: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+}
+
+.mc-reaction-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mc-like-btn, .mc-dislike-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mc-like-btn:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+}
+
+.mc-dislike-btn:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+.mc-like-btn.mc-active {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
+    color: #60a5fa;
+}
+
+.mc-dislike-btn.mc-active {
+    background-color: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #f87171;
+}
+
+.mc-reaction-icon {
+    font-size: 1rem;
+}
+
+.mc-reaction-count {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+/* Replies */
+.mc-replies {
+    margin-top: 16px;
+    padding-left: 20px;
+    border-left: 2px solid rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mc-reply {
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.mc-reply-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mc-reply-reactions {
+    margin-top: 8px;
+}
+
+/* Empty State */
+.mc-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.mc-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.mc-empty-text {
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+/* Input Section */
+.mc-input-section {
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(135deg, #2a2d35 0%, #24272d 100%);
+}
+
+.mc-reply-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.mc-reply-indicator-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+}
+
+.mc-reply-label {
+    color: #9ca3af;
+}
+
+.mc-reply-user {
+    color: #60a5fa;
+}
+
+.mc-cancel-reply {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.mc-cancel-reply:hover {
+    background-color: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.mc-input-wrapper {
+    display: flex;
+    gap: 10px;
+}
+
+.mc-comment-input {
+    flex: 1;
+    padding: 12px 16px;
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.mc-comment-input::placeholder {
+    color: #6b7280;
+}
+
+.mc-comment-input:focus {
+    outline: none;
+    background-color: rgba(255,255,255,0.08);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.mc-submit-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.mc-submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.mc-submit-btn:active {
+    transform: translateY(0);
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
     }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
 
+/* Responsive */
+@media (max-width: 768px) {
+    .mc-container {
+        margin: 20px auto;
+        padding: 0 16px;
+    }
     
-
-    @keyframes fadeIn {
-
-        from { opacity: 0; transform: translateY(-10px); }
-
-        to { opacity: 1; transform: translateY(0); }
-
+    .mc-model-card, .mc-comments-card {
+        border-radius: 16px;
+        padding: 16px;
     }
-
     
-
-    .reply-btn {
-
-        font-size: 0.875rem;
-
-        text-decoration: none;
-
+    .mc-comment-inner {
+        gap: 10px;
     }
-
     
-
-    .reply-btn:hover {
-
-        text-decoration: underline;
-
+    .mc-comment-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
     }
-
+}
 </style>
 
 {% endblock %}

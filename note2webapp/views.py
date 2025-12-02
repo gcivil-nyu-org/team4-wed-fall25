@@ -24,7 +24,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
 from .forms import UploadForm, VersionForm
-from .models import ModelUpload, ModelVersion, Profile, ModelComment
+from .models import ModelUpload, ModelVersion, Profile, ModelComment, CommentReaction
 from .utils import (
     validate_model,
     test_model_on_cpu,
@@ -798,10 +798,57 @@ def test_model_cpu(request, version_id):
     # Get comments for this version
     comments = ModelComment.objects.filter(
         model_version=version, parent=None
-    ).prefetch_related("replies", "user__profile")
+    ).prefetch_related(
+        "replies",
+        "replies__user__profile",
+        "replies__reactions",
+        "user__profile",
+        "reactions",
+    )
 
     # Check if user is uploader
     is_uploader = version.upload.user == request.user
+
+    # Get user reactions for all comments and replies
+    comment_ids = [c.id for c in comments]
+    for comment in comments:
+        comment_ids.extend([r.id for r in comment.replies.all()])
+
+    user_reactions = {}
+    if comment_ids:
+        reactions = CommentReaction.objects.filter(
+            comment_id__in=comment_ids, user=request.user
+        )
+        for reaction in reactions:
+            user_reactions[reaction.comment_id] = reaction.reaction_type
+
+    # Add UTC timestamps to version and comments/replies for JavaScript conversion
+    # Version uploaded timestamp
+    if timezone.is_aware(version.created_at):
+        version.created_at_utc = version.created_at.isoformat()
+    else:
+        version.created_at_utc = timezone.make_aware(
+            version.created_at, timezone.utc
+        ).isoformat()
+
+    # Comments and replies timestamps
+    for comment in comments:
+        # Ensure timezone-aware datetime
+        if timezone.is_aware(comment.created_at):
+            comment.created_at_utc = comment.created_at.isoformat()
+        else:
+            # If naive, assume UTC
+            comment.created_at_utc = timezone.make_aware(
+                comment.created_at, timezone.utc
+            ).isoformat()
+
+        for reply in comment.replies.all():
+            if timezone.is_aware(reply.created_at):
+                reply.created_at_utc = reply.created_at.isoformat()
+            else:
+                reply.created_at_utc = timezone.make_aware(
+                    reply.created_at, timezone.utc
+                ).isoformat()
 
     return render(
         request,
@@ -813,6 +860,7 @@ def test_model_cpu(request, version_id):
             "parse_error": parse_error,
             "comments": comments,
             "is_uploader": is_uploader,
+            "user_reactions": json.dumps(user_reactions),
         },
     )
 
@@ -1139,16 +1187,137 @@ def model_comments_view(request, version_id):
     version = get_object_or_404(ModelVersion, id=version_id)
     comments = ModelComment.objects.filter(
         model_version=version, parent=None
-    ).prefetch_related("replies", "user__profile")
+    ).prefetch_related(
+        "replies",
+        "replies__user__profile",
+        "replies__reactions",
+        "user__profile",
+        "reactions",
+    )
 
     # Check if user is uploader or reviewer
     is_uploader = version.upload.user == request.user
     is_reviewer = request.user.profile.role == "reviewer"
+
+    # Get user reactions for all comments and replies
+    comment_ids = [c.id for c in comments]
+    for comment in comments:
+        comment_ids.extend([r.id for r in comment.replies.all()])
+
+    user_reactions = {}
+    if comment_ids:
+        reactions = CommentReaction.objects.filter(
+            comment_id__in=comment_ids, user=request.user
+        )
+        for reaction in reactions:
+            user_reactions[reaction.comment_id] = reaction.reaction_type
+
+    # Add UTC timestamps to comments and replies for JavaScript conversion
+    for comment in comments:
+        # Ensure timezone-aware datetime
+        if timezone.is_aware(comment.created_at):
+            comment.created_at_utc = comment.created_at.isoformat()
+        else:
+            # If naive, assume UTC
+            comment.created_at_utc = timezone.make_aware(
+                comment.created_at, timezone.utc
+            ).isoformat()
+
+        for reply in comment.replies.all():
+            if timezone.is_aware(reply.created_at):
+                reply.created_at_utc = reply.created_at.isoformat()
+            else:
+                reply.created_at_utc = timezone.make_aware(
+                    reply.created_at, timezone.utc
+                ).isoformat()
+
+    # Determine back URL based on user role and referer
+    return_to = request.GET.get("return_to", "")
+    back_url = None
+
+    if return_to == "reviewer":
+        # Reviewer coming from reviewer dashboard
+        back_url = f"/reviewer/?page=detail&pk={version.upload.id}"
+    elif return_to == "dashboard":
+        # Uploader coming from dashboard detail page
+        back_url = f"/dashboard/?page=detail&pk={version.upload.id}"
+    elif return_to == "test":
+        # Coming from test model page
+        back_url = f"/test-model/{version_id}/"
+    elif is_reviewer:
+        # Reviewer (default to reviewer dashboard)
+        back_url = f"/reviewer/?page=detail&pk={version.upload.id}"
+    elif is_uploader:
+        # Uploader (default to dashboard detail page)
+        back_url = f"/dashboard/?page=detail&pk={version.upload.id}"
+    else:
+        # Fallback to dashboard
+        back_url = "/dashboard/"
 
     context = {
         "version": version,
         "comments": comments,
         "is_uploader": is_uploader,
         "is_reviewer": is_reviewer,
+        "back_url": back_url,
+        "user_reactions": json.dumps(user_reactions),
     }
     return render(request, "note2webapp/model_comments.html", context)
+
+
+@login_required
+def toggle_comment_reaction(request, comment_id):
+    """API endpoint to like/dislike a comment"""
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        comment = get_object_or_404(ModelComment, id=comment_id)
+        reaction_type = request.POST.get("reaction_type")
+
+        if reaction_type not in ["like", "dislike"]:
+            return JsonResponse({"error": "Invalid reaction type"}, status=400)
+
+        # Get or create reaction
+        reaction, created = CommentReaction.objects.get_or_create(
+            comment=comment,
+            user=request.user,
+            defaults={"reaction_type": reaction_type},
+        )
+
+        if not created:
+            # If user already reacted, toggle or change reaction
+            if reaction.reaction_type == reaction_type:
+                # Same reaction - remove it
+                reaction.delete()
+                likes_count = comment.get_likes_count()
+                dislikes_count = comment.get_dislikes_count()
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "action": "removed",
+                        "likes_count": likes_count,
+                        "dislikes_count": dislikes_count,
+                        "user_reaction": None,
+                    }
+                )
+            else:
+                # Different reaction - change it
+                reaction.reaction_type = reaction_type
+                reaction.save()
+
+        likes_count = comment.get_likes_count()
+        dislikes_count = comment.get_dislikes_count()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "action": "added" if created else "changed",
+                "likes_count": likes_count,
+                "dislikes_count": dislikes_count,
+                "user_reaction": reaction_type,
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
