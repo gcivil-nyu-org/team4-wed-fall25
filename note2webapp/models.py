@@ -98,6 +98,9 @@ class ModelVersion(models.Model):
     is_active = models.BooleanField(default=False)
     log = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    usage_count = models.PositiveIntegerField(
+        default=0, help_text="Number of times this version has been tested."
+    )
 
     # soft delete
     is_deleted = models.BooleanField(default=False)
@@ -139,3 +142,62 @@ class ModelVersion(models.Model):
         """
         safe_name = getattr(self.upload, "name", f"upload-{self.upload_id}")
         return f"{self.category}/{safe_name}/v{self.version_number}/"
+
+
+# -----------------------
+# MODEL FEEDBACK/COMMENT SYSTEM
+# -----------------------
+class ModelComment(models.Model):
+    model_version = models.ForeignKey(
+        ModelVersion, on_delete=models.CASCADE, related_name="comments"
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} on {self.model_version.tag}: {self.content[:50]}"
+
+    def is_reply(self):
+        return self.parent is not None
+
+    def get_likes_count(self):
+        return self.reactions.filter(reaction_type="like").count()
+
+    def get_dislikes_count(self):
+        return self.reactions.filter(reaction_type="dislike").count()
+
+    def get_user_reaction(self, user):
+        try:
+            reaction = self.reactions.get(user=user)
+            return reaction.reaction_type
+        except CommentReaction.DoesNotExist:
+            return None
+
+
+class CommentReaction(models.Model):
+    REACTION_CHOICES = [
+        ("like", "Like"),
+        ("dislike", "Dislike"),
+    ]
+
+    comment = models.ForeignKey(
+        ModelComment, on_delete=models.CASCADE, related_name="reactions"
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reaction_type = models.CharField(max_length=10, choices=REACTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ["comment", "user"]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} {self.reaction_type}s comment {self.comment.id}"

@@ -1,1 +1,1 @@
-web: gunicorn note2web.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
+web: daphne -b 0.0.0.0 -p 8000 --proxy-headers --access-log - note2web.asgi:application

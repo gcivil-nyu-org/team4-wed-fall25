@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load widget_tweaks %}
+{% load static %}
 {% block title %}Note2Web{% endblock %}
 
 {% block content %}
@@ -15,6 +16,16 @@
       </div>
     </div>
     <div class="model-head-right">
+      <!-- Tutorial button with refined styling -->
+      <button
+        type="button"
+        class="tutorial-btn"
+        data-bs-toggle="modal"
+        data-bs-target="#uploaderTutorialModal">
+        <span class="tutorial-icon">?</span>
+        <span class="tutorial-label">Tutorial</span>
+      </button>
+
       <a href="?page=create" class="new-upload-primary-btn">+ New Upload</a>
     </div>
   </div>
@@ -58,6 +69,29 @@
 
 </div>
 
+<!-- Uploader Tutorial Modal -->
+<div class="modal fade" id="uploaderTutorialModal" tabindex="-1"
+     aria-labelledby="uploaderTutorialLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background-color:#111827; color:#e5e7eb;">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="uploaderTutorialLabel">Uploader Tutorial</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="ratio ratio-16x9">
+          <video controls>
+            <!-- Put your actual video file at: note2webapp/static/note2webapp/videos/uploader_tutorial.mp4 -->
+            <source src="{% static 'note2webapp/videos/uploader_tutorial.mp4' %}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
 /* ---------- SHARED LOOK & FEEL ---------- */
 .model-shell,
@@ -94,6 +128,49 @@
   filter: brightness(1.07);
   color: #fff;
   text-decoration: none;
+}
+
+/* Tutorial button – secondary pill */
+.tutorial-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.7);
+  background: radial-gradient(circle at 0% 0%, #020617 0%, #111827 70%);
+  box-shadow: 0 0 0 1px rgba(15,23,42,0.9);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #e5e7eb;
+  cursor: pointer;
+  margin-right: 10px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.tutorial-btn:hover {
+  border-color: rgba(129,140,248,0.9);
+  box-shadow: 0 6px 14px rgba(15,23,42,0.9);
+  transform: translateY(-1px);
+}
+.tutorial-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(15,23,42,1);
+  color: #a5b4fc; /* soft indigo */
+  box-shadow: inset 0 0 0 1px rgba(148,163,184,0.7);
+}
+.tutorial-label {
+  line-height: 1;
 }
 
 /* neutral pill ("soft button") */
@@ -493,11 +570,30 @@ function getCookie(name) {
     {% for version in versions %}
       <!-- Header row -->
       <div class="version-row-header">
-        <strong class="version-number {% if version.is_deleted %}version-deleted{% endif %}">
-          v{{ version.version_number }}
-        </strong>
+        <div class="version-row-left">
+          <strong class="version-number {% if version.is_deleted %}version-deleted{% endif %}">
+            v{{ version.version_number }}
+          </strong>
 
-        <div class="version-badges">
+          {% if not version.is_deleted and version.status == "PASS" %}
+            <a href="{% url 'test_model_cpu' version.id %}"
+               class="version-cta version-cta-test">
+              <span class="version-cta-icon">▶</span>
+              <span class="version-cta-label">Test</span>
+            </a>
+          {% endif %}
+
+          {% if not version.is_deleted %}
+            <a href="{% url 'model_comments' version.id %}?return_to=dashboard" 
+               class="version-cta version-cta-comments" 
+               title="View comments and discussion for this version">
+              <span class="version-cta-icon">💬</span>
+              <span class="version-cta-label">Comments</span>
+            </a>
+          {% endif %}
+        </div>
+
+        <div class="version-row-right">
           <span class="badge bg-info">{{ version.tag }}</span>
 
           {% if version.is_deleted %}
@@ -513,13 +609,6 @@ function getCookie(name) {
             <span class="badge bg-danger">Failed</span>
           {% else %}
             <span class="badge bg-warning text-dark">Pending</span>
-          {% endif %}
-
-          {# 👇 ONLY show Test if NOT deleted and PASSED #}
-          {% if not version.is_deleted and version.status == "PASS" %}
-            <a href="{% url 'test_model_cpu' version.id %}" class="badge badge-test" style="background:#2563eb;">
-              Test
-            </a>
           {% endif %}
         </div>
       </div>
@@ -694,6 +783,22 @@ function getCookie(name) {
   gap: 12px;
 }
 
+/* left = v10 + Test + Comments */
+.version-row-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* right = tag + status badges */
+.version-row-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .version-number {
   font-size: 0.95rem;
   color: #fff;
@@ -704,21 +809,55 @@ function getCookie(name) {
   color: #999;
 }
 
-.version-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* slimmer Test / Comments pills */
+.version-cta {
+  display: inline-flex;
   align-items: center;
+  gap: 5px;
+  padding: 4px 10px;          /* smaller pill */
+  border-radius: 999px;
+  font-size: 0.78rem;         /* slightly smaller text */
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
 }
 
-/* test badge */
-.badge-test {
-  border-radius: 9999px;
-  padding: 4px 12px;
-  font-weight: 600;
-  font-size: 0.7rem;
+.version-cta-test {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.version-cta-comments {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.version-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.45);
   text-decoration: none;
-  color: #fff !important;
+}
+
+.version-cta:focus-visible {
+  outline: 2px solid #e5e7eb;
+  outline-offset: 2px;
+}
+
+.version-cta-icon {
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.version-cta-label {
+  line-height: 1;
 }
 
 .version-log-block {
@@ -865,7 +1004,20 @@ function getCookie(name) {
           <div class="vs-hint">
             Summarize what this version does, what's changed, and any warnings.
           </div>
-          {{ form.information|add_class:"form-control vs-textarea"|attr:"rows:4" }}
+
+          {# Use placeholder from VersionForm widget #}
+          {{ form.information|add_class:"form-control vs-textarea" }}
+
+          <!-- Generate with AI row -->
+          <div class="vs-ai-row">
+            <button type="button" class="vs-ai-btn" id="generateWithAIButton">
+              <span class="vs-ai-icon">✨</span>
+              <span>Generate with AI</span>
+            </button>
+            <div id="aiStatusText" class="vs-ai-status">
+              <!-- status text will appear here -->
+            </div>
+          </div>
         </div>
 
         <div class="vs-field-half">
@@ -1087,12 +1239,82 @@ function getCookie(name) {
   line-height:1.4;
   padding:10px 12px;
 }
+
+/* make placeholder visible */
+.vs-input::placeholder,
+.vs-textarea::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
 .vs-input:focus,
 .vs-textarea:focus {
   outline:2px solid rgba(80,130,255,0.6);
   outline-offset:0;
   box-shadow:0 0 0 4px rgba(80,130,255,0.15);
   border-color:rgba(80,130,255,0.8) !important;
+}
+
+/* Generate with AI row */
+.vs-ai-row {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.vs-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(129,140,248,0.9);
+  background: radial-gradient(circle at 10% 0%, #1e293b 0%, #020617 65%);
+  box-shadow:
+    0 0 0 1px rgba(15,23,42,0.9),
+    0 14px 30px rgba(15,23,42,0.85);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.vs-ai-btn:hover:not(:disabled) {
+  border-color: rgba(196,181,253,1);
+  box-shadow:
+    0 0 0 1px rgba(129,140,248,0.7),
+    0 16px 40px rgba(15,23,42,0.95);
+  transform: translateY(-1px);
+}
+.vs-ai-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.vs-ai-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  background: radial-gradient(circle at 30% 0%, #fbbf24 0%, #f97316 60%);
+  box-shadow:
+    0 0 0 1px rgba(251,191,36,0.9),
+    0 0 12px rgba(245,158,11,0.9);
+}
+
+.vs-ai-status {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  min-height: 1.2em;
 }
 
 /* footer */
@@ -1199,6 +1421,83 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' +
     '<span> Uploading… </span>';
 });
+
+// Reuse getCookie from list-page script if available;
+// if not, define a fallback here.
+if (typeof getCookie === "undefined") {
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+}
+
+/* --------- Generate with AI logic --------- */
+const aiBtn       = document.getElementById("generateWithAIButton");
+const aiStatus    = document.getElementById("aiStatusText");
+const infoField   = document.querySelector('textarea[name="information"]');
+const uploadForm  = document.getElementById("uploadForm");
+
+if (aiBtn && aiStatus && infoField && uploadForm) {
+  aiBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    const modelInput   = document.getElementById("id_model_file");
+    const predictInput = document.getElementById("id_predict_file");
+    const schemaInput  = document.getElementById("id_schema_file");
+
+    if (!modelInput.files.length ||
+        !predictInput.files.length ||
+        !schemaInput.files.length) {
+      aiStatus.textContent = "Please select a .pt, .py, and .json file first.";
+      return;
+    }
+
+    aiBtn.disabled = true;
+    aiStatus.textContent = "✨ Generating description with AI...";
+
+    // Build FormData from the whole form so it includes the three files
+    const formData = new FormData(uploadForm);
+
+    try {
+      const resp = await fetch("{% url 'generate_model_info' %}", {
+        method: "POST",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: formData,
+      });
+
+      const data = await resp.json();
+
+      if (resp.ok && data.description) {
+        infoField.value = data.description;
+        aiStatus.textContent =
+          "✅ Description generated. You can edit it before uploading.";
+      } else {
+        aiStatus.textContent =
+          data.error ||
+          "Could not generate description. Please try again or write it manually.";
+      }
+    } catch (err) {
+      console.error("Generate with AI error:", err);
+      aiStatus.textContent =
+        "Network or server issue while generating description. Please try again or write it manually.";
+    } finally {
+      aiBtn.disabled = false;
+    }
+  });
+}
 </script>
 {% endif %}
 

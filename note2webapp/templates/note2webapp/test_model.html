@@ -49,100 +49,271 @@
             </div>
             <div class="tm-info-item">
                 <span class="tm-info-label">Uploaded:</span>
-                <span class="tm-info-value">{{ version.created_at|date:"M d, Y H:i" }}</span>
+                <span class="tm-info-value utc-time" data-utc="{{ version.created_at_utc }}">{{ version.created_at|date:"M d, Y H:i" }}</span>
             </div>
         </div>
     </div>
 
-    {# AFTER RUN: show split layout #}
-    {% if result %}
-    <div class="tm-body-split">
-        <!-- LEFT: form -->
-        <div class="tm-form-card">
-            <h5 class="tm-section-title">Input Data</h5>
-            <form method="post">
-                {% csrf_token %}
-                <div class="tm-field">
-                    <label for="inputData" class="tm-label">
-                        Enter input JSON <span class="tm-required">*</span>
-                    </label>
-                    <div class="tm-hint" style="color:#f472b6;">
-                        - Single case: {"text": "The food was delicious"}<br>
-                        - Multiple cases: [{"text": "A"}, {"text": "B"}]
-                    </div>
-                    <textarea
-                        id="inputData"
-                        name="input_data"
-                        rows="10"
-                        class="tm-textarea"
-                    >{{ last_input|default:'' }}</textarea>
+    <!-- Main content: Testing and Comments side by side -->
+    <div class="tm-main-split">
+        <!-- LEFT: Testing Section -->
+        <div class="tm-testing-section">
+            {# AFTER RUN: show split layout #}
+            {% if result %}
+            <div class="tm-testing-split">
+                <!-- Form -->
+                <div class="tm-form-card">
+                    <h5 class="tm-section-title">Input Data</h5>
+                    <form method="post" id="testForm">
+                        {% csrf_token %}
+                        <div class="tm-field">
+                            <label for="inputData" class="tm-label">
+                                Enter input JSON <span class="tm-required">*</span>
+                            </label>
+                            <div class="tm-hint" style="color:#f472b6;">
+                                - Single case: {"text": "The food was delicious"}<br>
+                                - Multiple cases: [{"text": "A"}, {"text": "B"}]
+                            </div>
+                            <textarea
+                                id="inputData"
+                                name="input_data"
+                                rows="10"
+                                class="tm-textarea"
+                            >{{ last_input|default:'' }}</textarea>
+                            <div id="inputError" class="tm-error-msg"></div>
+                        </div>
+                        <div class="tm-footer">
+                            <button type="submit" class="tm-submit-btn">Run Test</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="tm-footer">
-                    <button type="submit" class="tm-submit-btn">Run Test</button>
-                </div>
-            </form>
-        </div>
 
-        <!-- RIGHT: result -->
-        <div class="tm-result-card">
-            <h5 class="tm-section-title">Test Result</h5>
-            {% if result.status == "ok" or result.batch %}
-                <div class="tm-result-success">
-                    <div class="tm-result-header">
-                        <span>Success</span>
-                    </div>
-                    {# if your view returns batch outputs #}
-                    {% if result.outputs %}
-                        <pre class="tm-result-output">{{ result.outputs|safe }}</pre>
+                <!-- Result -->
+                <div class="tm-result-card">
+                    <h5 class="tm-section-title">Test Result</h5>
+                    {% if result.status == "ok" or result.batch %}
+                        <div class="tm-result-success">
+                            <div class="tm-result-header">
+                                <span>Success</span>
+                            </div>
+                            <div id="tm-result-output" class="tm-result-output" style="white-space: pre-wrap;"></div>
+                            {# Safely embed result as JSON for JS parsing #}
+                            {{ result|json_script:"model_result" }}
+
+                            <script>
+                                (function() {
+                                    try {
+                                        // Parse the safely embedded JSON data
+                                        const resultData = JSON.parse(
+                                            document.getElementById("model_result").textContent
+                                        );
+                                        const data = resultData.outputs || resultData.output || resultData;
+
+                                        function renderObject(obj, level = 0) {
+                                            let html = "";
+                                            const indent = "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(level);
+
+                                            if (Array.isArray(obj)) {
+                                                obj.forEach((item, i) => {
+                                                    html += `${indent}<b>Case ${i + 1}</b><br>`;
+                                                    html += renderObject(item, level + 1);
+                                                    html += "<br>";
+                                                });
+                                                return html;
+                                            }
+
+                                            if (typeof obj !== "object" || obj === null) {
+                                                return `${indent}${obj}<br>`;
+                                            }
+
+                                            for (const key in obj) {
+                                                if (!Object.hasOwn(obj, key)) continue;
+                                                const value = obj[key];
+                                                if (typeof value === "object" && value !== null) {
+                                                    html += `${indent}<b>${capitalize(key)}:</b><br>`;
+                                                    html += renderObject(value, level + 1);
+                                                } else {
+                                                    html += `${indent}<b>${capitalize(key)}:</b> ${value}<br>`;
+                                                }
+                                            }
+                                            return html;
+                                        }
+
+                                        function capitalize(str) {
+                                            return str.charAt(0).toUpperCase() + str.slice(1);
+                                        }
+
+                                        const outputHtml = renderObject(data);
+                                        document.getElementById("tm-result-output").innerHTML = outputHtml;
+                                    } catch (err) {
+                                        console.error("Error displaying model output:", err);
+                                        document.getElementById("tm-result-output").textContent =
+                                            "⚠️ Could not parse model output.";
+                                    }
+                                })();
+                            </script>
+                        </div>
                     {% else %}
-                        <pre class="tm-result-output">{{ result|safe }}</pre>
+                        <div class="tm-result-error">
+                            <div class="tm-result-header">
+                                <span>Error</span>
+                            </div>
+                            <pre class="tm-result-output">{{ result.error|default:result|safe }}</pre>
+                        </div>
                     {% endif %}
                 </div>
+            </div>
             {% else %}
-                <div class="tm-result-error">
-                    <div class="tm-result-header">
-                        <span>Error</span>
+            {# BEFORE RUN: single column #}
+            <div class="tm-form-card">
+                <h5 class="tm-section-title">Input Data</h5>
+                <form method="post" id="testForm">
+                    {% csrf_token %}
+                    <div class="tm-field">
+                        <label for="inputData" class="tm-label">
+                            Enter input JSON <span class="tm-required">*</span>
+                        </label>
+                        <div class="tm-hint">
+                            Provide valid JSON matching your model's input schema.
+                            Example: {"text": "The food was delicious and service was excellent"}
+                        </div>
+                        <textarea
+                            id="inputData"
+                            name="input_data"
+                            rows="8"
+                            class="tm-textarea"
+                            placeholder='{"text": "The food was delicious and service was excellent"}'
+                        >{{ last_input|default:'' }}</textarea>
+                        <div id="inputError" class="tm-error-msg"></div>
                     </div>
-                    <pre class="tm-result-output">{{ result.error|default:result|safe }}</pre>
-                </div>
+                    <div class="tm-footer">
+                        <button type="submit" class="tm-submit-btn">Run Test</button>
+                    </div>
+                </form>
+            </div>
             {% endif %}
         </div>
-    </div>
 
-    {% else %}
-    {# BEFORE RUN: single column like your screenshot #}
-    <div class="tm-form-card">
-        <h5 class="tm-section-title">Input Data</h5>
-        <form method="post">
-            {% csrf_token %}
-            <div class="tm-field">
-                <label for="inputData" class="tm-label">
-                    Enter input JSON <span class="tm-required">*</span>
-                </label>
-                <div class="tm-hint">
-                    Provide valid JSON matching your model's input schema.
-                    Example: {"text": "The food was delicious and service was excellent"}
+        <!-- RIGHT: Comments Section -->
+        <div class="tm-comments-section">
+            <div class="tm-comments-card">
+                <h5 class="tm-section-title">💬 Discussion & Feedback</h5>
+                
+                <!-- Comments Container -->
+                <div id="comments-container" class="tm-comments-container">
+                    {% for comment in comments %}
+                    <div class="tm-comment mb-3" id="comment-{{ comment.id }}" data-comment-id="{{ comment.id }}">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <div class="tm-comment-avatar">
+                                    {{ comment.user.username|slice:":1"|upper }}
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex justify-content-between">
+                                    <h6 class="mb-0">
+                                        {{ comment.user.username }}
+                                        <span class="tm-badge tm-badge-info">{{ comment.user.profile.role }}</span>
+                                        {% if comment.user == version.upload.user %}
+                                        <span class="tm-badge tm-badge-success">Author</span>
+                                        {% endif %}
+                                    </h6>
+                                    <small class="tm-text-muted utc-time" data-utc="{{ comment.created_at_utc }}">{{ comment.created_at|date:"M d, Y H:i" }}</small>
+                                </div>
+                                <p class="tm-comment-content mb-1 mt-2">{{ comment.content }}</p>
+                                <div class="d-flex align-items-center gap-3 mt-2">
+                                    <button class="tm-reply-btn" data-comment-id="{{ comment.id }}">
+                                        <span>💬</span>
+                                        <span>Reply</span>
+                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-sm btn-outline-primary like-btn" 
+                                                data-comment-id="{{ comment.id }}"
+                                                data-reaction-type="like">
+                                            <span class="like-icon">👍</span>
+                                            <span class="like-count">{{ comment.get_likes_count }}</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                                                data-comment-id="{{ comment.id }}"
+                                                data-reaction-type="dislike">
+                                            <span class="dislike-icon">👎</span>
+                                            <span class="dislike-count">{{ comment.get_dislikes_count }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Replies -->
+                                {% if comment.replies.all %}
+                                <div class="tm-replies ms-4 mt-2" id="replies-{{ comment.id }}">
+                                    {% for reply in comment.replies.all %}
+                                    <div class="tm-reply mb-2">
+                                        <div class="d-flex justify-content-between">
+                                            <h6 class="mb-0">
+                                                {{ reply.user.username }}
+                                                <span class="tm-badge tm-badge-info">{{ reply.user.profile.role }}</span>
+                                                {% if reply.user == version.upload.user %}
+                                                <span class="tm-badge tm-badge-success">Author</span>
+                                                {% endif %}
+                                            </h6>
+                                            <small class="tm-text-muted utc-time" data-utc="{{ reply.created_at_utc }}">{{ reply.created_at|date:"M d, Y H:i" }}</small>
+                                        </div>
+                                        <p class="tm-comment-content mb-0 mt-1">{{ reply.content }}</p>
+                                        <div class="d-flex align-items-center gap-2 mt-2">
+                                            <button class="btn btn-sm btn-outline-primary like-btn" 
+                                                    data-comment-id="{{ reply.id }}"
+                                                    data-reaction-type="like">
+                                                <span class="like-icon">👍</span>
+                                                <span class="like-count">{{ reply.get_likes_count }}</span>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                                                    data-comment-id="{{ reply.id }}"
+                                                    data-reaction-type="dislike">
+                                                <span class="dislike-icon">👎</span>
+                                                <span class="dislike-count">{{ reply.get_dislikes_count }}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="tm-replies ms-4 mt-2" id="replies-{{ comment.id }}"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="tm-comment-divider">
+                    {% empty %}
+                    <p class="tm-text-muted text-center">No comments yet. Be the first to comment!</p>
+                    {% endfor %}
                 </div>
-                <textarea
-                    id="inputData"
-                    name="input_data"
-                    rows="8"
-                    class="tm-textarea"
-                    placeholder='{"text": "The food was delicious and service was excellent"}'
-                >{{ last_input|default:'' }}</textarea>
+
+                <!-- Comment Input -->
+                <div class="tm-comment-input mt-3">
+                    <div id="reply-indicator" class="tm-reply-indicator d-none mb-2">
+                        Replying to <strong id="reply-to-user"></strong>
+                        <button type="button" class="tm-close-btn" id="cancel-reply">×</button>
+                    </div>
+                    <div class="tm-input-group">
+                        <input 
+                            id="comment-input" 
+                            type="text" 
+                            class="tm-comment-field" 
+                            placeholder="Add a comment..."
+                        >
+                        <button id="comment-submit" class="tm-comment-submit">
+                            <span id="submit-text">Comment</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="tm-footer">
-                <button type="submit" class="tm-submit-btn">Run Test</button>
-            </div>
-        </form>
+        </div>
     </div>
-    {% endif %}
 </div>
 
 <style>
 /* container */
 .test-model-shell {
-    max-width: 1000px;
+    max-width: 1400px;
     background-color: #1b1d22;
     border: 1px solid rgba(255,255,255,0.04);
     border-radius: 16px;
@@ -190,6 +361,19 @@
     padding: 10px 14px;
     margin-bottom: 18px;
     font-size: .85rem;
+}
+
+/* inline input error */
+.tm-error-msg {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #fca5a5;
+    min-height: 1.1em; /* keeps layout stable even when empty */
+}
+
+.tm-textarea-error {
+    border-color: #f97373 !important;
+    box-shadow: 0 0 0 1px rgba(248,113,113,0.4);
 }
 
 /* info strip */
@@ -296,10 +480,754 @@
     gap: 20px;
 }
 
+/* Main split: Testing and Comments side by side */
+.tm-main-split {
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.tm-testing-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.tm-testing-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.tm-comments-section {
+    position: sticky;
+    top: 20px;
+}
+
+.tm-comments-card {
+    background-color: #24272d;
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 18px 18px 22px;
+    height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+}
+
+.tm-comments-container {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 350px);
+    padding-right: 8px;
+}
+
+.tm-comment {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.tm-comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #3b82ff, #2154ff);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.tm-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.tm-badge-info {
+    background-color: rgba(13, 202, 240, 0.2);
+    color: #0dcaf0;
+}
+
+.tm-badge-success {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.tm-text-muted {
+    color: #8f96a3;
+    font-size: 0.85rem;
+}
+
+.tm-comment-content {
+    color: #fff;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.tm-reply-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tm-reply-btn:hover {
+    background-color: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.2);
+    color: #fff;
+}
+
+.tm-replies {
+    border-left: 2px solid rgba(255,255,255,0.1);
+    padding-left: 12px;
+    margin-top: 8px;
+}
+
+.tm-reply {
+    padding-bottom: 8px;
+}
+
+.tm-comment-divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    margin: 12px 0;
+}
+
+/* Reaction buttons - smaller and transparent */
+.tm-comments-section .like-btn,
+.tm-comments-section .dislike-btn {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    padding: 3px 6px !important;
+    font-size: 0.7rem !important;
+    min-width: auto !important;
+    height: auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.2s ease;
+    color: rgba(255, 255, 255, 0.6) !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 1;
+}
+
+.tm-comments-section .like-btn:hover {
+    background: rgba(59, 130, 246, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+}
+
+.tm-comments-section .dislike-btn:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+}
+
+.tm-comments-section .like-btn.btn-primary,
+.tm-comments-section .like-btn.mc-active {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+    color: #60a5fa !important;
+}
+
+.tm-comments-section .dislike-btn.btn-danger,
+.tm-comments-section .dislike-btn.mc-active {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+}
+
+.tm-comments-section .like-icon,
+.tm-comments-section .dislike-icon {
+    font-size: 0.8rem;
+}
+
+.tm-comments-section .like-count,
+.tm-comments-section .dislike-count {
+    font-size: 0.65rem;
+    font-weight: 500;
+}
+
+.tm-comment-input {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.tm-reply-indicator {
+    background-color: rgba(13, 202, 240, 0.1);
+    border: 1px solid rgba(13, 202, 240, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #0dcaf0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tm-close-btn {
+    background: none;
+    border: none;
+    color: #0dcaf0;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tm-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.tm-comment-field {
+    flex: 1;
+    background-color: #1b1d22;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.tm-comment-field:focus {
+    outline: none;
+    border-color: rgba(80,130,255,0.6);
+    box-shadow: 0 0 0 3px rgba(80,130,255,0.12);
+}
+
+.tm-comment-submit {
+    background: linear-gradient(145deg, #10b981, #059669);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tm-comment-submit:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.tm-result-output {
+    background-color: #000;
+    color: #4ade80;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    border-radius: 8px;
+    padding: 14px;
+}
+.tm-result-output b {
+    color: #60a5fa; /* blue key labels */
+}
+
 /* responsive */
+@media (max-width: 1400px) {
+    .test-model-shell {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 1200px) {
+    .tm-main-split {
+        grid-template-columns: 1fr;
+    }
+    .tm-comments-section {
+        position: static;
+    }
+    .tm-comments-card {
+        height: auto;
+        max-height: 600px;
+    }
+    .tm-comments-container {
+        max-height: 400px;
+    }
+}
+
 @media (max-width: 900px) {
     .tm-body-split { grid-template-columns: 1fr; }
     .test-model-shell { padding: 16px; }
 }
 </style>
+
+{# --- SIMPLE FRONT-END VALIDATION FOR INPUT JSON --- #}
+<script>
+(function () {
+    const form = document.getElementById('testForm');
+    if (!form) return;
+
+    const textarea = document.getElementById('inputData');
+    const errorBox = document.getElementById('inputError');
+
+    function showError(msg) {
+        if (errorBox) errorBox.textContent = msg;
+        if (textarea) textarea.classList.add('tm-textarea-error');
+    }
+
+    function clearError() {
+        if (errorBox) errorBox.textContent = '';
+        if (textarea) textarea.classList.remove('tm-textarea-error');
+    }
+
+    if (textarea) {
+        textarea.addEventListener('input', clearError);
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (!textarea) return;
+
+        const value = textarea.value.trim();
+        clearError();
+
+        if (!value) {
+            e.preventDefault();
+            showError('Please enter input JSON before running the test.');
+        }
+    });
+})();
+</script>
+
+<script>
+    const versionId = "{{ version.id }}";
+    const userName = "{{ request.user.username }}";
+    const userRole = "{{ request.user.profile.role }}";
+    const isAuthor = "{{ is_uploader|yesno:'true,false' }}" === "true";
+    const authorUsername = "{{ version.upload.user.username }}";
+    
+    let replyToCommentId = null;
+    let replyToUsername = null;
+    
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = wsProtocol + '//' + window.location.host + '/ws/model/' + versionId + '/comments/';
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    const chatSocket = new WebSocket(wsUrl);
+
+    chatSocket.onopen = function(e) {
+        console.log('WebSocket connection opened successfully');
+    };
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        addCommentToUI(data);
+    };
+
+    chatSocket.onerror = function(error) {
+        console.error('WebSocket error:', error);
+        console.error('WebSocket URL attempted:', wsUrl);
+        console.error('Make sure you are running the server with Daphne: daphne -b 127.0.0.1 -p 8000 note2web.asgi:application');
+    };
+
+    chatSocket.onclose = function(e) {
+        console.warn('WebSocket closed. Code:', e.code, 'Reason:', e.reason);
+        if (e.code !== 1000) {
+            console.error('WebSocket closed unexpectedly. Code:', e.code);
+            console.error('This usually means the server is not running with Daphne or WebSocket routing is not configured.');
+        }
+    };
+
+    function addCommentToUI(data) {
+        const container = data.parent_id 
+            ? document.getElementById(`replies-${data.parent_id}`)
+            : document.getElementById('comments-container');
+        
+        if (!container) return;
+        
+        const isReply = data.parent_id !== null;
+        const commentDiv = document.createElement('div');
+        commentDiv.className = isReply ? 'tm-reply mb-2' : 'tm-comment mb-3';
+        commentDiv.id = `comment-${data.comment_id}`;
+        
+        const authorBadge = data.username === authorUsername 
+            ? '<span class="tm-badge tm-badge-success">Author</span>' 
+            : '';
+        
+        if (isReply) {
+            commentDiv.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <h6 class="mb-0">
+                        ${data.username}
+                        <span class="tm-badge tm-badge-info">${data.user_role}</span>
+                        ${authorBadge}
+                    </h6>
+                    <small class="tm-text-muted utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</small>
+                </div>
+                <p class="tm-comment-content mb-0 mt-1">${data.message}</p>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <button class="btn btn-sm btn-outline-primary like-btn" 
+                            data-comment-id="${data.comment_id}"
+                            data-reaction-type="like">
+                        <span class="like-icon">👍</span>
+                        <span class="like-count">0</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                            data-comment-id="${data.comment_id}"
+                            data-reaction-type="dislike">
+                        <span class="dislike-icon">👎</span>
+                        <span class="dislike-count">0</span>
+                    </button>
+                </div>
+            `;
+            
+            // For replies, add event listeners to like/dislike buttons
+            commentDiv.querySelectorAll('.like-btn, .dislike-btn').forEach(btn => {
+                if (!btn.hasAttribute('data-listener-attached')) {
+                    btn.setAttribute('data-listener-attached', 'true');
+                    btn.addEventListener('click', handleReactionClick);
+                }
+            });
+        } else {
+            commentDiv.innerHTML = `
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <div class="tm-comment-avatar">
+                            ${data.username.charAt(0).toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="mb-0">
+                                ${data.username}
+                                <span class="tm-badge tm-badge-info">${data.user_role}</span>
+                                ${authorBadge}
+                            </h6>
+                            <small class="tm-text-muted utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</small>
+                        </div>
+                        <p class="tm-comment-content mb-1 mt-2">${data.message}</p>
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            <button class="tm-reply-btn" data-comment-id="${data.comment_id}">
+                                <span>💬</span>
+                                <span>Reply</span>
+                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-primary like-btn" 
+                                        data-comment-id="${data.comment_id}"
+                                        data-reaction-type="like">
+                                    <span class="like-icon">👍</span>
+                                    <span class="like-count">0</span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger dislike-btn" 
+                                        data-comment-id="${data.comment_id}"
+                                        data-reaction-type="dislike">
+                                    <span class="dislike-icon">👎</span>
+                                    <span class="dislike-count">0</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tm-replies ms-4 mt-2" id="replies-${data.comment_id}"></div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listener to new reply button
+            const replyBtn = commentDiv.querySelector('.tm-reply-btn');
+            if (replyBtn) {
+                replyBtn.addEventListener('click', function() {
+                    handleReplyClick(this);
+                });
+            }
+            
+            // Add event listeners to like/dislike buttons
+            commentDiv.querySelectorAll('.like-btn, .dislike-btn').forEach(btn => {
+                if (!btn.hasAttribute('data-listener-attached')) {
+                    btn.setAttribute('data-listener-attached', 'true');
+                    btn.addEventListener('click', handleReactionClick);
+                }
+            });
+            
+            // Add divider for main comments
+            const hr = document.createElement('hr');
+            hr.className = 'tm-comment-divider';
+            container.appendChild(hr);
+        }
+        
+        container.appendChild(commentDiv);
+        
+        // Update UTC times for the newly added comment
+        const timeElement = commentDiv.querySelector('.utc-time');
+        if (timeElement && timeElement.dataset.utc) {
+            timeElement.textContent = formatToLocalTime(timeElement.dataset.utc);
+        }
+        
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    // Function to attach reaction listeners
+    function attachReactionListeners() {
+        document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+            // Check if listener already attached
+            if (!button.hasAttribute('data-listener-attached')) {
+                button.setAttribute('data-listener-attached', 'true');
+                button.addEventListener('click', handleReactionClick);
+            }
+        });
+    }
+    
+    // Handle like/dislike button clicks
+    function handleReactionClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const button = e.currentTarget;
+        const commentId = button.getAttribute('data-comment-id');
+        const reactionType = button.getAttribute('data-reaction-type');
+        
+        if (!commentId || !reactionType) {
+            console.error('Missing comment ID or reaction type', { commentId, reactionType });
+            return;
+        }
+        
+        console.log('Reaction click:', { commentId, reactionType });
+        
+        // Disable button during request
+        button.disabled = true;
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('reaction_type', reactionType);
+        
+        // Send request
+        fetch(`/api/comment/${commentId}/reaction/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update counts
+                const commentDiv = document.getElementById(`comment-${commentId}`);
+                if (commentDiv) {
+                    const likeBtn = commentDiv.querySelector('.like-btn');
+                    const dislikeBtn = commentDiv.querySelector('.dislike-btn');
+                    const likeCount = commentDiv.querySelector('.like-count');
+                    const dislikeCount = commentDiv.querySelector('.dislike-count');
+                    
+                    if (likeCount) likeCount.textContent = data.likes_count;
+                    if (dislikeCount) dislikeCount.textContent = data.dislikes_count;
+                    
+                    // Update button states
+                    if (data.user_reaction === 'like') {
+                        likeBtn.classList.remove('btn-outline-primary');
+                        likeBtn.classList.add('btn-primary');
+                        dislikeBtn.classList.remove('btn-danger');
+                        dislikeBtn.classList.add('btn-outline-danger');
+                    } else if (data.user_reaction === 'dislike') {
+                        dislikeBtn.classList.remove('btn-outline-danger');
+                        dislikeBtn.classList.add('btn-danger');
+                        likeBtn.classList.remove('btn-primary');
+                        likeBtn.classList.add('btn-outline-primary');
+                    } else {
+                        // No reaction
+                        likeBtn.classList.remove('btn-primary');
+                        likeBtn.classList.add('btn-outline-primary');
+                        dislikeBtn.classList.remove('btn-danger');
+                        dislikeBtn.classList.add('btn-outline-danger');
+                    }
+                    
+                    // Re-attach event listeners after DOM updates
+                    setTimeout(() => {
+                        attachReactionListeners();
+                    }, 50);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            button.disabled = false;
+        });
+    }
+    
+    // Get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Attach listeners when DOM is ready
+    function initReactionButtons() {
+        attachReactionListeners();
+        console.log('Initialized reaction buttons, found:', document.querySelectorAll('.like-btn, .dislike-btn').length);
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initReactionButtons);
+    } else {
+        initReactionButtons();
+    }
+    
+    // Also attach listeners after a short delay to catch any dynamically loaded buttons
+    setTimeout(initReactionButtons, 500);
+    
+    // Set initial button states based on user reactions
+    let userReactions = {};
+    try {
+    // Inject Django variable as a JSON string and parse on the JS side
+    const userReactionsRaw = '{{ user_reactions|default:"{}"|escapejs }}';
+    userReactions = JSON.parse(userReactionsRaw);
+    } catch (e) {
+        console.error('Error parsing user reactions JSON:', e);
+        userReactions = {};
+    }
+    Object.keys(userReactions).forEach(commentId => {
+        const commentDiv = document.getElementById(`comment-${commentId}`);
+        if (commentDiv) {
+            const likeBtn = commentDiv.querySelector('.like-btn');
+            const dislikeBtn = commentDiv.querySelector('.dislike-btn');
+            const reactionType = userReactions[commentId];
+            
+            if (reactionType === 'like' && likeBtn) {
+                likeBtn.classList.remove('btn-outline-primary');
+                likeBtn.classList.add('btn-primary');
+            } else if (reactionType === 'dislike' && dislikeBtn) {
+                dislikeBtn.classList.remove('btn-outline-danger');
+                dislikeBtn.classList.add('btn-danger');
+            }
+        }
+    });
+
+    function handleReplyClick(button) {
+        const commentId = button.getAttribute('data-comment-id');
+        const commentDiv = document.getElementById(`comment-${commentId}`);
+        const username = commentDiv.querySelector('h6').textContent.trim().split('\n')[0].trim();
+        
+        replyToCommentId = commentId;
+        replyToUsername = username;
+        
+        document.getElementById('reply-indicator').classList.remove('d-none');
+        document.getElementById('reply-to-user').textContent = username;
+        document.getElementById('submit-text').textContent = 'Reply';
+        document.getElementById('comment-input').focus();
+    }
+
+    document.getElementById('cancel-reply').addEventListener('click', function() {
+        replyToCommentId = null;
+        replyToUsername = null;
+        document.getElementById('reply-indicator').classList.add('d-none');
+        document.getElementById('submit-text').textContent = 'Comment';
+    });
+
+    // Add event listeners to existing reply buttons
+    document.querySelectorAll('.tm-reply-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            handleReplyClick(this);
+        });
+    });
+
+    document.getElementById('comment-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('comment-submit').click();
+        }
+    });
+
+    document.getElementById('comment-submit').addEventListener('click', function() {
+        const input = document.getElementById('comment-input');
+        const message = input.value.trim();
+        
+        if (message) {
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'username': userName,
+                'parent_id': replyToCommentId
+            }));
+            
+            input.value = '';
+            
+            if (replyToCommentId) {
+                document.getElementById('cancel-reply').click();
+            }
+        }
+    });
+
+    // Convert UTC timestamps to local device time
+    function formatToLocalTime(utcString) {
+        if (!utcString) return '';
+        
+        // Parse the ISO 8601 UTC string (should include timezone info)
+        const date = new Date(utcString);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date string:', utcString);
+            return utcString; // Return original if parsing fails
+        }
+        
+        // Format to local time
+        const options = {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return date.toLocaleString(undefined, options);
+    }
+
+    function updateUTCTimes() {
+        document.querySelectorAll('.utc-time').forEach(el => {
+            const utc = el.dataset.utc;
+            if (utc) {
+                const localTime = formatToLocalTime(utc);
+                if (localTime) {
+                    el.textContent = localTime;
+                }
+            }
+        });
+    }
+
+    // Run UTC time conversion on page load
+    document.addEventListener("DOMContentLoaded", function() {
+        updateUTCTimes();
+    });
+
+    // Also run immediately if DOM is already loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateUTCTimes);
+    } else {
+        updateUTCTimes();
+    }
+
+</script>
 {% endblock %}

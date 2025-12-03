@@ -13,19 +13,47 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 import tempfile
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+if load_dotenv is not None:
+    env_path = BASE_DIR / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-&o)&&#rx8x52xt-^45hwuzf*86x69zhy^bvh2z#q^nl%$61*%&"
+# ---- Secrets (from environment) ----
+# Check if we're in development mode (default to True for local dev)
+DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+if not SECRET_KEY:
+    if os.environ.get("CI") or os.environ.get("TRAVIS"):
+        SECRET_KEY = "dummy-key-for-ci"
+        print("INFO: Using dummy SECRET_KEY for CI environment.")
+    elif DEBUG:
+        # Local development fallback (only when DEBUG=True)
+        SECRET_KEY = (
+            "django-insecure-&o)&&#rx8x52xt-^45hwuzf*86x69zhy^bvh2z#q^nl%$61*%&"
+        )
+        print(
+            "WARNING: Using default SECRET_KEY for local development. Set DJANGO_SECRET_KEY for production."
+        )
+    else:
+        raise RuntimeError("DJANGO_SECRET_KEY is not set in environment")
+
+# Optional: warn if OpenAI key missing (AI features will just fail gracefully)
+if not OPENAI_API_KEY:
+    print(
+        "WARNING: OPENAI_API_KEY is not set – AI features depending on OpenAI will not work."
+    )
 
 ALLOWED_HOSTS = [
     "*",
@@ -41,6 +69,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     "note2webapp",
     "widget_tweaks",
 ]
@@ -76,6 +105,38 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "note2web.wsgi.application"
+ASGI_APPLICATION = "note2web.asgi.application"
+
+# Channel layers configuration
+# Use Redis in production (for multi-instance support), InMemory for development
+if os.environ.get("REDIS_URL"):
+    # Production: Use Redis URL (e.g., from ElastiCache)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.environ.get("REDIS_URL")],
+            },
+        },
+    }
+elif os.environ.get("REDIS_HOST"):
+    # Production: Use Redis with host/port
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [
+                    (
+                        os.environ.get("REDIS_HOST", "localhost"),
+                        int(os.environ.get("REDIS_PORT", 6379)),
+                    )
+                ],
+            },
+        },
+    }
+else:
+    # Development: Use in-memory channel layer
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 
 # Database

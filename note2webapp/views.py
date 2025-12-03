@@ -13,14 +13,18 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
 from django import forms
-from django.db import transaction, IntegrityError
+from django.db import transaction, IntegrityError, models
 
 # for admin stats
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
 
+from django.conf import settings
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+
 from .forms import UploadForm, VersionForm
-from .models import ModelUpload, ModelVersion, Profile
+from .models import ModelUpload, ModelVersion, Profile, ModelComment, CommentReaction
 from .utils import (
     validate_model,
     test_model_on_cpu,
@@ -29,6 +33,7 @@ from .utils import (
     delete_version_files_and_dir,
     delete_model_media_tree,
 )
+from openai import OpenAI
 
 
 # ---------------------------------------------------------
@@ -753,6 +758,10 @@ def test_model_cpu(request, version_id):
                     parse_error = (
                         "Top-level JSON must be either an object {...} or a list [...]."
                     )
+                # Increment usage counter every time it's tested
+                version.usage_count = models.F("usage_count") + 1
+                version.save(update_fields=["usage_count"])
+                version.refresh_from_db()
 
             except json.JSONDecodeError as e:
                 raw_msg = str(e)
@@ -786,6 +795,61 @@ def test_model_cpu(request, version_id):
 
                 parse_error = friendly
 
+    # Get comments for this version
+    comments = ModelComment.objects.filter(
+        model_version=version, parent=None
+    ).prefetch_related(
+        "replies",
+        "replies__user__profile",
+        "replies__reactions",
+        "user__profile",
+        "reactions",
+    )
+
+    # Check if user is uploader
+    is_uploader = version.upload.user == request.user
+
+    # Get user reactions for all comments and replies
+    comment_ids = [c.id for c in comments]
+    for comment in comments:
+        comment_ids.extend([r.id for r in comment.replies.all()])
+
+    user_reactions = {}
+    if comment_ids:
+        reactions = CommentReaction.objects.filter(
+            comment_id__in=comment_ids, user=request.user
+        )
+        for reaction in reactions:
+            user_reactions[reaction.comment_id] = reaction.reaction_type
+
+    # Add UTC timestamps to version and comments/replies for JavaScript conversion
+    # Version uploaded timestamp
+    if timezone.is_aware(version.created_at):
+        version.created_at_utc = version.created_at.isoformat()
+    else:
+        version.created_at_utc = timezone.make_aware(
+            version.created_at, timezone.utc
+        ).isoformat()
+
+    # Comments and replies timestamps
+    for comment in comments:
+        # Ensure timezone-aware datetime
+        if timezone.is_aware(comment.created_at):
+            comment.created_at_utc = comment.created_at.isoformat()
+        else:
+            # If naive, assume UTC
+            comment.created_at_utc = timezone.make_aware(
+                comment.created_at, timezone.utc
+            ).isoformat()
+
+        for reply in comment.replies.all():
+            if timezone.is_aware(reply.created_at):
+                reply.created_at_utc = reply.created_at.isoformat()
+            else:
+                reply.created_at_utc = timezone.make_aware(
+                    reply.created_at, timezone.utc
+                ).isoformat()
+
     return render(
         request,
         "note2webapp/test_model.html",
@@ -794,6 +858,9 @@ def test_model_cpu(request, version_id):
             "result": result,
             "last_input": last_input,
             "parse_error": parse_error,
+            "comments": comments,
+            "is_uploader": is_uploader,
+            "user_reactions": json.dumps(user_reactions),
         },
     )
 
@@ -847,6 +914,196 @@ def run_model_by_version_id(request, version_id):
 
     result = test_model_on_cpu(version, input_data)
     return JsonResponse(result)
+
+
+# ---------------------------------------------------------
+# AI-ASSISTED MODEL INFO (ChatGPT integration)
+# ---------------------------------------------------------
+@login_required
+@csrf_exempt
+@require_POST
+def generate_model_info(request):
+    """
+    Generate a 'Model Information' text using ONLY the three artifacts:
+      - model_file (.pt)
+      - predict_file (.py)
+      - schema_file (.json)
+
+    Modes:
+      1) New upload (Add Version form)
+         - uses request.FILES['model_file'], ['predict_file'], ['schema_file']
+      2) Existing version (comments/detail screen)
+         - POST includes 'version_id'; reads files from ModelVersion fields
+    """
+
+    # 1. OpenAI client
+    api_key = getattr(settings, "OPENAI_API_KEY", None)
+    if not api_key:
+        return JsonResponse(
+            {"error": "Server is missing OPENAI_API_KEY configuration."},
+            status=500,
+        )
+
+    client = OpenAI(api_key=api_key)
+
+    # 2. Collect artifacts (two modes)
+    model_summary = ""
+    predict_source = ""
+    schema_text = ""
+
+    version_id = request.POST.get("version_id")
+
+    # ---------- Mode A: existing version (from DB) ----------
+    if version_id:
+        version = ModelVersion.objects.filter(id=version_id).first()
+        if not version:
+            return JsonResponse({"error": "Model version not found."}, status=404)
+
+        model_path = version.model_file.path if version.model_file else None
+        predict_path = version.predict_file.path if version.predict_file else None
+        schema_path = version.schema_file.path if version.schema_file else None
+
+        if not (model_path and predict_path and schema_path):
+            return JsonResponse(
+                {
+                    "error": (
+                        "This version is missing one or more artifacts. "
+                        "Please re-upload the model, predict.py, and schema.json."
+                    )
+                },
+                status=400,
+            )
+
+        # model.pt -> summarize (don't pass binary to the model)
+        try:
+            size_mb = os.path.getsize(model_path) / (1024 * 1024)
+            model_summary = (
+                f"PyTorch model weights file '{os.path.basename(model_path)}', "
+                f"approx. {size_mb:.2f} MB."
+            )
+        except OSError:
+            model_summary = "PyTorch model weights file (size unknown)."
+
+        # predict.py (truncated)
+        try:
+            with open(predict_path, "r", encoding="utf-8", errors="ignore") as f:
+                predict_source = f.read(4000)
+        except OSError:
+            predict_source = ""
+
+        # schema.json (truncated)
+        try:
+            with open(schema_path, "r", encoding="utf-8", errors="ignore") as f:
+                schema_text = f.read(4000)
+        except OSError:
+            schema_text = ""
+
+    # ---------- Mode B: Add Version form (new upload, from request.FILES) ----------
+    else:
+        # These are the field names on VersionForm/ModelVersion.
+        # The actual filenames are model.pt, predict.py, schema.json – that's fine.
+        model_file = request.FILES.get("model_file")
+        predict_file = request.FILES.get("predict_file")
+        schema_file = request.FILES.get("schema_file")
+
+        if not (model_file and predict_file and schema_file):
+            return JsonResponse(
+                {
+                    "error": (
+                        "Could not find all required files. Please make sure you "
+                        "have uploaded a .pt, a .py, and a .json file."
+                    )
+                },
+                status=400,
+            )
+
+        # model.pt summary (size only)
+        try:
+            size_mb = model_file.size / (1024 * 1024)
+        except Exception:
+            size_mb = 0.0
+        model_summary = f"PyTorch model file '{model_file.name}' (~{size_mb:.2f} MB)."
+
+        # predict.py content (truncate and rewind so upload still works)
+        try:
+            predict_bytes = predict_file.read()
+            predict_source = predict_bytes.decode("utf-8", errors="ignore")[:4000]
+            predict_file.seek(0)
+        except Exception:
+            predict_source = ""
+
+        # schema.json content (truncate and rewind)
+        try:
+            schema_bytes = schema_file.read()
+            schema_text = schema_bytes.decode("utf-8", errors="ignore")[:4000]
+            schema_file.seek(0)
+        except Exception:
+            schema_text = ""
+
+    # Fallbacks if we couldn't read something
+    if not predict_source:
+        predict_source = "No usable predict.py content could be read."
+    if not schema_text:
+        schema_text = "No usable schema.json content could be read."
+
+    # 3. Build prompt for OpenAI
+    system_prompt = (
+        "You are an ML engineer who writes concise release notes for model versions. "
+        "Write for engineers and product managers. Avoid lists; use 3–6 plain sentences."
+    )
+
+    user_prompt = f"""You are given information about a model version from three artifacts.
+
+PyTorch model summary:
+{model_summary}
+
+predict.py (truncated):
+```python
+{predict_source}
+```
+
+schema.json (truncated):
+```json
+{schema_text}
+```
+
+Using only this information, write a description suitable for a Model Information field in a deployment dashboard.
+
+Explain:
+- What the model does and the type of task it solves.
+- The kinds of inputs/outputs you can infer from the schema.
+- Any important assumptions, limitations, or warnings (e.g. domain coverage, language, bias, need for monitoring).
+
+Write 3–6 sentences of neutral, professional prose.
+Do NOT include headings or bullet points.
+"""
+
+    # 4. Call OpenAI
+    try:
+        completion = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.4,
+            max_tokens=300,
+        )
+        description = completion.choices[0].message.content.strip()
+        return JsonResponse({"description": description})
+
+    except Exception as e:
+        # Log error to server console for debugging
+        print("Error from OpenAI in generate_model_info:", repr(e))
+        return JsonResponse(
+            {
+                "error": (
+                    "Network or server issue while generating description. "
+                    "Please try again or write it manually."
+                )
+            },
+            status=500,
+        )
 
 
 # ---------------------------------------------------------
@@ -923,3 +1180,144 @@ def admin_stats(request):
         "top_uploaders": top_uploaders,
     }
     return render(request, "note2webapp/admin_stats.html", context)
+
+
+@login_required
+def model_comments_view(request, version_id):
+    version = get_object_or_404(ModelVersion, id=version_id)
+    comments = ModelComment.objects.filter(
+        model_version=version, parent=None
+    ).prefetch_related(
+        "replies",
+        "replies__user__profile",
+        "replies__reactions",
+        "user__profile",
+        "reactions",
+    )
+
+    # Check if user is uploader or reviewer
+    is_uploader = version.upload.user == request.user
+    is_reviewer = request.user.profile.role == "reviewer"
+
+    # Get user reactions for all comments and replies
+    comment_ids = [c.id for c in comments]
+    for comment in comments:
+        comment_ids.extend([r.id for r in comment.replies.all()])
+
+    user_reactions = {}
+    if comment_ids:
+        reactions = CommentReaction.objects.filter(
+            comment_id__in=comment_ids, user=request.user
+        )
+        for reaction in reactions:
+            user_reactions[reaction.comment_id] = reaction.reaction_type
+
+    # Add UTC timestamps to comments and replies for JavaScript conversion
+    for comment in comments:
+        # Ensure timezone-aware datetime
+        if timezone.is_aware(comment.created_at):
+            comment.created_at_utc = comment.created_at.isoformat()
+        else:
+            # If naive, assume UTC
+            comment.created_at_utc = timezone.make_aware(
+                comment.created_at, timezone.utc
+            ).isoformat()
+
+        for reply in comment.replies.all():
+            if timezone.is_aware(reply.created_at):
+                reply.created_at_utc = reply.created_at.isoformat()
+            else:
+                reply.created_at_utc = timezone.make_aware(
+                    reply.created_at, timezone.utc
+                ).isoformat()
+
+    # Determine back URL based on user role and referer
+    return_to = request.GET.get("return_to", "")
+    back_url = None
+
+    if return_to == "reviewer":
+        # Reviewer coming from reviewer dashboard
+        back_url = f"/reviewer/?page=detail&pk={version.upload.id}"
+    elif return_to == "dashboard":
+        # Uploader coming from dashboard detail page
+        back_url = f"/dashboard/?page=detail&pk={version.upload.id}"
+    elif return_to == "test":
+        # Coming from test model page
+        back_url = f"/test-model/{version_id}/"
+    elif is_reviewer:
+        # Reviewer (default to reviewer dashboard)
+        back_url = f"/reviewer/?page=detail&pk={version.upload.id}"
+    elif is_uploader:
+        # Uploader (default to dashboard detail page)
+        back_url = f"/dashboard/?page=detail&pk={version.upload.id}"
+    else:
+        # Fallback to dashboard
+        back_url = "/dashboard/"
+
+    context = {
+        "version": version,
+        "comments": comments,
+        "is_uploader": is_uploader,
+        "is_reviewer": is_reviewer,
+        "back_url": back_url,
+        "user_reactions": json.dumps(user_reactions),
+    }
+    return render(request, "note2webapp/model_comments.html", context)
+
+
+@login_required
+def toggle_comment_reaction(request, comment_id):
+    """API endpoint to like/dislike a comment"""
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        comment = get_object_or_404(ModelComment, id=comment_id)
+        reaction_type = request.POST.get("reaction_type")
+
+        if reaction_type not in ["like", "dislike"]:
+            return JsonResponse({"error": "Invalid reaction type"}, status=400)
+
+        # Get or create reaction
+        reaction, created = CommentReaction.objects.get_or_create(
+            comment=comment,
+            user=request.user,
+            defaults={"reaction_type": reaction_type},
+        )
+
+        if not created:
+            # If user already reacted, toggle or change reaction
+            if reaction.reaction_type == reaction_type:
+                # Same reaction - remove it
+                reaction.delete()
+                likes_count = comment.get_likes_count()
+                dislikes_count = comment.get_dislikes_count()
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "action": "removed",
+                        "likes_count": likes_count,
+                        "dislikes_count": dislikes_count,
+                        "user_reaction": None,
+                    }
+                )
+            else:
+                # Different reaction - change it
+                reaction.reaction_type = reaction_type
+                reaction.save()
+
+        likes_count = comment.get_likes_count()
+        dislikes_count = comment.get_dislikes_count()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "action": "added" if created else "changed",
+                "likes_count": likes_count,
+                "dislikes_count": dislikes_count,
+                "user_reaction": reaction_type,
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
