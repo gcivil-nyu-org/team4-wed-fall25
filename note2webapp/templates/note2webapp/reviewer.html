@@ -81,7 +81,7 @@
     background-color: #1b1d22;
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
-    padding: 24px;
+    padding: 24px 24px 20px;
     margin: 0 auto;
     box-shadow: 0 32px 64px rgba(0,0,0,0.8);
     color: #fff;
@@ -90,8 +90,8 @@
 
 /* Header */
 .rv-header {
-    margin-bottom: 24px;
-    padding-bottom: 20px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
     border-bottom: 1px solid rgba(255,255,255,0.07);
     display: flex;
     justify-content: space-between;
@@ -145,7 +145,7 @@
     font-size: 1.4rem;
     font-weight: 600;
     color: #fff;
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
     line-height: 1.3;
 }
 
@@ -162,7 +162,7 @@
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 12px;
     box-shadow: 0 24px 48px rgba(0,0,0,0.7);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     transition: all 0.3s ease;
     overflow: hidden;
 }
@@ -177,7 +177,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 18px 22px;
     text-decoration: none;
     color: #fff;
     gap: 16px;
@@ -189,7 +189,7 @@
 }
 
 .rv-model-name {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: #fff;
     flex: 1;
@@ -215,14 +215,14 @@
     border: 1px dashed rgba(255,255,255,0.15);
     border-radius: 12px;
     text-align: center;
-    padding: 40px 20px;
-    margin-top: 16px;
+    padding: 34px 20px;
+    margin-top: 14px;
     box-shadow: 0 24px 48px rgba(0,0,0,0.6);
 }
 .empty-emoji {
     font-size: 2rem;
     line-height: 1;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 .empty-title {
     color: #fff;
@@ -274,36 +274,50 @@
 
     <!-- Active Version Card -->
     <div class="rvd-version-card">
-        <h5 class="rvd-section-title">Active Version</h5>
+        <h5 class="rvd-section-title rvd-section-title-tight">Active Version</h5>
         
         {% if active_version %}
-            <div class="rvd-version-header">
-                <strong class="rvd-version-number">v{{ active_version.version_number }}</strong>
-                <div class="rvd-version-badges">
-                    <span class="badge bg-info">{{ active_version.tag }}</span>
-                    {% if active_version.is_active %}
-                        <span class="badge bg-success">Active</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Inactive</span>
-                    {% endif %}
+            <!-- top row: version info + CTA -->
+            <div class="rvd-version-header-row">
+                <div class="rvd-version-header-left">
+                    <div class="rvd-version-mainline">
+                        <strong class="rvd-version-number">v{{ active_version.version_number }}</strong>
+                        <div class="rvd-version-badges">
+                            <span class="badge bg-info">{{ active_version.tag }}</span>
+                            {% if active_version.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="rvd-version-meta">
+                        Category: {{ active_version.get_category_display }}
+                    </div>
                 </div>
-            </div>
 
-            <p class="mb-2">Category: {{ active_version.get_category_display }}</p>
-            
-            {% if active_version.log %}
-                <div class="rvd-log-block">
-                    <pre class="rvd-log-pre {% if active_version.status == 'PASS' %}log-success{% else %}log-error{% endif %}">{{ active_version.log }}</pre>
-                </div>
-            {% endif %}
-            
-            <div class="rvd-action-buttons">
                 <a href="{% url 'test_model_cpu' active_version.id %}?return_to=reviewer&model_id={{ upload.id }}" 
-                   class="rvd-btn rvd-btn-primary">
-                    <i class="fas fa-vial"></i>
-                    <span>Test and Discussion</span>
+                   class="rvd-cta-main">
+                    <span class="rvd-cta-main-label">Test &amp; Discussion</span>
                 </a>
             </div>
+
+            {% if active_version.log %}
+                <div class="rvd-log-card">
+                    <div class="rvd-log-title">
+                        {% if active_version.status == "PASS" %}
+                            ✅ Validation Successful
+                        {% else %}
+                            ⚠️ Validation Log
+                        {% endif %}
+                    </div>
+                    <div class="rvd-log-body">
+                        <pre class="rvd-log-pre {% if active_version.status == 'PASS' %}log-success{% else %}log-error{% endif %}">
+{{ active_version.log }}
+                        </pre>
+                    </div>
+                </div>
+            {% endif %}
         {% else %}
             <div class="rvd-no-version">
                 <p class="text-muted mb-0">No active version available</p>
@@ -319,7 +333,7 @@
     background-color: #1b1d22;
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
-    padding: 24px;
+    padding: 22px 24px 20px;
     margin: 0 auto;
     box-shadow: 0 32px 64px rgba(0,0,0,0.8);
     color: #fff;
@@ -328,7 +342,7 @@
 
 /* Top bar */
 .rvd-top-bar {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
 }
 
 .rvd-back-btn {
@@ -338,7 +352,7 @@
     background-color: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 10px;
-    padding: 10px 16px;
+    padding: 9px 14px;
     font-size: 0.9rem;
     font-weight: 500;
     color: #fff;
@@ -355,8 +369,8 @@
 
 /* Header */
 .rvd-header {
-    margin-bottom: 24px;
-    padding-bottom: 20px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
     border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
@@ -374,17 +388,22 @@
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 12px;
     box-shadow: 0 24px 48px rgba(0,0,0,0.7);
-    padding: 20px;
-    margin-bottom: 24px;
+    padding: 18px 20px;
+    margin-bottom: 16px; /* tighter space above Active Version */
 }
 
 .rvd-section-title {
     font-size: 0.9rem;
     font-weight: 600;
     color: #fff;
-    margin: 0 0 16px 0;
+    margin: 0 0 12px 0;
     border-bottom: 1px solid rgba(255,255,255,0.07);
-    padding-bottom: 8px;
+    padding-bottom: 6px;
+}
+
+.rvd-section-title-tight {
+    margin-bottom: 10px;
+    padding-bottom: 5px;
 }
 
 .rvd-info-text {
@@ -408,20 +427,34 @@
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 12px;
     box-shadow: 0 24px 48px rgba(0,0,0,0.7);
-    padding: 20px;
+    padding: 16px 20px 18px;
 }
 
-.rvd-version-header {
+/* header row with CTA */
+.rvd-version-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
     margin-bottom: 12px;
     flex-wrap: wrap;
-    gap: 12px;
+}
+
+.rvd-version-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.rvd-version-mainline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .rvd-version-number {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: #fff;
 }
 
@@ -432,13 +465,64 @@
     align-items: center;
 }
 
-.rvd-log-block {
+.rvd-version-meta {
+    font-size: 0.84rem;
+    color: #9ca3af;
+}
+
+/* CTA button */
+.rvd-cta-main {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 8px 18px rgba(37,99,235,0.45);
+    white-space: nowrap;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      filter 0.15s ease;
+}
+
+.rvd-cta-main:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(37,99,235,0.6);
+    text-decoration: none;
+}
+
+.rvd-cta-main-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* log card with internal scroll */
+.rvd-log-card {
     background-color: #000;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    overflow-x: auto;
+    border-radius: 10px;
+    padding: 10px 12px 12px;
+    border: 1px solid rgba(52,211,153,0.4);
     box-shadow: 0 16px 32px rgba(0,0,0,0.8);
+}
+
+.rvd-log-title {
+    color: #4ade80;
+    font-weight: 600;
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+}
+
+.rvd-log-body {
+    max-height: 420px;
+    overflow: auto;
+    border-radius: 6px;
 }
 
 .rvd-log-pre {
@@ -447,6 +531,7 @@
     font-size: 0.9rem;
     line-height: 1.5;
     margin: 0;
+    padding-top: 3px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -458,73 +543,34 @@
     color: #f87171;
 }
 
-.rvd-action-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    margin-top: 16px;
-}
-
-.rvd-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    border: none;
-    cursor: pointer;
-}
-
-.rvd-btn-primary {
-    background: radial-gradient(circle at 20% 20%, #4a6bff 0%, #1d3bd1 60%);
-    box-shadow: 0 4px 12px rgba(35,76,228,0.4);
-    color: #fff;
-}
-
-.rvd-btn-primary:hover {
-    filter: brightness(1.1);
-    color: #fff;
-    text-decoration: none;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(35,76,228,0.5);
-}
-
-.rvd-btn-secondary {
-    background: linear-gradient(145deg, #6f42c1, #5a32a3);
-    box-shadow: 0 4px 12px rgba(111,66,193,0.4);
-    color: #fff;
-}
-
-.rvd-btn-secondary:hover {
-    filter: brightness(1.1);
-    color: #fff;
-    text-decoration: none;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(111,66,193,0.5);
-}
-
-.rvd-btn-success {
-    background: linear-gradient(145deg, #10b981, #059669);
-    box-shadow: 0 4px 12px rgba(16,185,129,0.4);
-    color: #fff;
-}
-
-.rvd-btn-success:hover {
-    filter: brightness(1.1);
-    color: #fff;
-    text-decoration: none;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(16,185,129,0.5);
-}
-
 .rvd-no-version {
     text-align: center;
-    padding: 40px 20px;
+    padding: 28px 20px;
+}
+
+/* responsive */
+@media (max-width: 600px) {
+    .reviewer-shell,
+    .reviewer-detail-shell,
+    .reviewer-feedback-shell {
+        padding: 16px;
+    }
+
+    .rv-title,
+    .rvd-title,
+    .rvf-title {
+        font-size: 1.2rem;
+    }
+
+    .rvd-version-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .rvd-cta-main {
+        width: 100%;
+        justify-content: center;
+    }
 }
 </style>
 
@@ -603,7 +649,7 @@
 
 /* Top bar */
 .rvf-top-bar {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
 .rvf-back-btn {
@@ -613,7 +659,7 @@
     background-color: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.12);
     border-radius: 10px;
-    padding: 10px 16px;
+    padding: 9px 14px;
     font-size: 0.9rem;
     font-weight: 500;
     color: #fff;
@@ -630,9 +676,9 @@
 
 /* Header */
 .rvf-header {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     text-align: center;
-    padding-bottom: 20px;
+    padding-bottom: 16px;
     border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
@@ -640,7 +686,7 @@
     font-size: 1.4rem;
     font-weight: 600;
     color: #fff;
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
     line-height: 1.3;
 }
 
@@ -663,7 +709,7 @@
 .rvf-field {
     display: flex;
     flex-direction: column;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
 }
 
 .rvf-label {
@@ -709,7 +755,7 @@
 
 /* Footer with submit button */
 .rvf-footer {
-    margin-top: 24px;
+    margin-top: 18px;
 }
 
 .rvf-submit-btn {
@@ -723,7 +769,7 @@
     font-weight: 600;
     font-size: 1rem;
     line-height: 1.3;
-    padding: 14px 16px;
+    padding: 13px 16px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -761,8 +807,14 @@
         font-size: 1.2rem;
     }
     
-    .rvd-action-buttons {
-        grid-template-columns: 1fr;
+    .rvd-version-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .rvd-cta-main {
+        width: 100%;
+        justify-content: center;
     }
 }
 </style>

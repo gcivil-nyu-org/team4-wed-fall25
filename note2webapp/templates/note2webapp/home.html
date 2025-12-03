@@ -570,11 +570,30 @@ function getCookie(name) {
     {% for version in versions %}
       <!-- Header row -->
       <div class="version-row-header">
-        <strong class="version-number {% if version.is_deleted %}version-deleted{% endif %}">
-          v{{ version.version_number }}
-        </strong>
+        <div class="version-row-left">
+          <strong class="version-number {% if version.is_deleted %}version-deleted{% endif %}">
+            v{{ version.version_number }}
+          </strong>
 
-        <div class="version-badges">
+          {% if not version.is_deleted and version.status == "PASS" %}
+            <a href="{% url 'test_model_cpu' version.id %}"
+               class="version-cta version-cta-test">
+              <span class="version-cta-icon">▶</span>
+              <span class="version-cta-label">Test</span>
+            </a>
+          {% endif %}
+
+          {% if not version.is_deleted %}
+            <a href="{% url 'model_comments' version.id %}?return_to=dashboard" 
+               class="version-cta version-cta-comments" 
+               title="View comments and discussion for this version">
+              <span class="version-cta-icon">💬</span>
+              <span class="version-cta-label">Comments</span>
+            </a>
+          {% endif %}
+        </div>
+
+        <div class="version-row-right">
           <span class="badge bg-info">{{ version.tag }}</span>
 
           {% if version.is_deleted %}
@@ -590,22 +609,6 @@ function getCookie(name) {
             <span class="badge bg-danger">Failed</span>
           {% else %}
             <span class="badge bg-warning text-dark">Pending</span>
-          {% endif %}
-
-          {% if not version.is_deleted and version.status == "PASS" %}
-            <a href="{% url 'test_model_cpu' version.id %}" class="badge badge-test" style="background:#2563eb;">
-              Test
-            </a>
-          {% endif %}
-          
-          <!-- Comments Button for each version -->
-          {% if not version.is_deleted %}
-            <a href="{% url 'model_comments' version.id %}?return_to=dashboard" 
-               class="badge badge-comments" 
-               style="background:#10b981;"
-               title="View comments and discussion for this version">
-              💬 Comments
-            </a>
           {% endif %}
         </div>
       </div>
@@ -780,6 +783,22 @@ function getCookie(name) {
   gap: 12px;
 }
 
+/* left = v10 + Test + Comments */
+.version-row-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* right = tag + status badges */
+.version-row-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .version-number {
   font-size: 0.95rem;
   color: #fff;
@@ -790,39 +809,55 @@ function getCookie(name) {
   color: #999;
 }
 
-.version-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* slimmer Test / Comments pills */
+.version-cta {
+  display: inline-flex;
   align-items: center;
-}
-
-/* test badge */
-.badge-test {
-  border-radius: 9999px;
-  padding: 4px 12px;
+  gap: 5px;
+  padding: 4px 10px;          /* smaller pill */
+  border-radius: 999px;
+  font-size: 0.78rem;         /* slightly smaller text */
   font-weight: 600;
-  font-size: 0.7rem;
   text-decoration: none;
-  color: #fff !important;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
 }
 
-/* comments badge */
-.badge-comments {
-  border-radius: 9999px;
-  padding: 4px 12px;
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-decoration: none;
-  color: #fff !important;
-  transition: all 0.2s ease;
+.version-cta-test {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 
-.badge-comments:hover {
-  filter: brightness(1.1);
+.version-cta-comments {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.version-cta:hover {
+  filter: brightness(1.06);
   transform: translateY(-1px);
-  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.45);
   text-decoration: none;
+}
+
+.version-cta:focus-visible {
+  outline: 2px solid #e5e7eb;
+  outline-offset: 2px;
+}
+
+.version-cta-icon {
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.version-cta-label {
+  line-height: 1;
 }
 
 .version-log-block {
