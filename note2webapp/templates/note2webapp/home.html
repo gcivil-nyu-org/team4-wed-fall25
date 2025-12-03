@@ -1004,7 +1004,9 @@ function getCookie(name) {
           <div class="vs-hint">
             Summarize what this version does, what's changed, and any warnings.
           </div>
-          {{ form.information|add_class:"form-control vs-textarea"|attr:"rows:4" }}
+
+          {# Use placeholder from VersionForm widget #}
+          {{ form.information|add_class:"form-control vs-textarea" }}
 
           <!-- Generate with AI row -->
           <div class="vs-ai-row">
@@ -1237,6 +1239,14 @@ function getCookie(name) {
   line-height:1.4;
   padding:10px 12px;
 }
+
+/* make placeholder visible */
+.vs-input::placeholder,
+.vs-textarea::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
 .vs-input:focus,
 .vs-textarea:focus {
   outline:2px solid rgba(80,130,255,0.6);
@@ -1431,7 +1441,7 @@ if (typeof getCookie === "undefined") {
   }
 }
 
-/* --------- UPDATED Generate with AI logic --------- */
+/* --------- Generate with AI logic --------- */
 const aiBtn       = document.getElementById("generateWithAIButton");
 const aiStatus    = document.getElementById("aiStatusText");
 const infoField   = document.querySelector('textarea[name="information"]');
