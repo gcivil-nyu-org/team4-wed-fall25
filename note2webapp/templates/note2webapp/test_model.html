@@ -64,7 +64,7 @@
                 <!-- Form -->
                 <div class="tm-form-card">
                     <h5 class="tm-section-title">Input Data</h5>
-                    <form method="post">
+                    <form method="post" id="testForm">
                         {% csrf_token %}
                         <div class="tm-field">
                             <label for="inputData" class="tm-label">
@@ -80,6 +80,7 @@
                                 rows="10"
                                 class="tm-textarea"
                             >{{ last_input|default:'' }}</textarea>
+                            <div id="inputError" class="tm-error-msg"></div>
                         </div>
                         <div class="tm-footer">
                             <button type="submit" class="tm-submit-btn">Run Test</button>
@@ -166,7 +167,7 @@
             {# BEFORE RUN: single column #}
             <div class="tm-form-card">
                 <h5 class="tm-section-title">Input Data</h5>
-                <form method="post">
+                <form method="post" id="testForm">
                     {% csrf_token %}
                     <div class="tm-field">
                         <label for="inputData" class="tm-label">
@@ -183,6 +184,7 @@
                             class="tm-textarea"
                             placeholder='{"text": "The food was delicious and service was excellent"}'
                         >{{ last_input|default:'' }}</textarea>
+                        <div id="inputError" class="tm-error-msg"></div>
                     </div>
                     <div class="tm-footer">
                         <button type="submit" class="tm-submit-btn">Run Test</button>
@@ -359,6 +361,19 @@
     padding: 10px 14px;
     margin-bottom: 18px;
     font-size: .85rem;
+}
+
+/* inline input error */
+.tm-error-msg {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #fca5a5;
+    min-height: 1.1em; /* keeps layout stable even when empty */
+}
+
+.tm-textarea-error {
+    border-color: #f97373 !important;
+    box-shadow: 0 0 0 1px rgba(248,113,113,0.4);
 }
 
 /* info strip */
@@ -762,6 +777,43 @@
 }
 </style>
 
+{# --- SIMPLE FRONT-END VALIDATION FOR INPUT JSON --- #}
+<script>
+(function () {
+    const form = document.getElementById('testForm');
+    if (!form) return;
+
+    const textarea = document.getElementById('inputData');
+    const errorBox = document.getElementById('inputError');
+
+    function showError(msg) {
+        if (errorBox) errorBox.textContent = msg;
+        if (textarea) textarea.classList.add('tm-textarea-error');
+    }
+
+    function clearError() {
+        if (errorBox) errorBox.textContent = '';
+        if (textarea) textarea.classList.remove('tm-textarea-error');
+    }
+
+    if (textarea) {
+        textarea.addEventListener('input', clearError);
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (!textarea) return;
+
+        const value = textarea.value.trim();
+        clearError();
+
+        if (!value) {
+            e.preventDefault();
+            showError('Please enter input JSON before running the test.');
+        }
+    });
+})();
+</script>
+
 <script>
     const versionId = "{{ version.id }}";
     const userName = "{{ request.user.username }}";
@@ -1052,9 +1104,11 @@
     // Set initial button states based on user reactions
     let userReactions = {};
     try {
-        userReactions = {{ user_reactions|safe|default:"{}" }};
+    // Inject Django variable as a JSON string and parse on the JS side
+    const userReactionsRaw = '{{ user_reactions|default:"{}"|escapejs }}';
+    userReactions = JSON.parse(userReactionsRaw);
     } catch (e) {
-        console.error('Error parsing user reactions:', e);
+        console.error('Error parsing user reactions JSON:', e);
         userReactions = {};
     }
     Object.keys(userReactions).forEach(commentId => {

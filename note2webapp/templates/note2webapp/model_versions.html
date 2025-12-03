@@ -132,7 +132,6 @@
                                         </a>
                                     {% endif %}
 
-
                                     {# Actions only relevant for passed versions #}
                                     {% if version.status == "PASS" %}
                                         {% if version.is_active %}
@@ -191,11 +190,14 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center py-5">
-                            <div class="empty-state-inline">
-                                <i class="fas fa-inbox fa-2x mb-2 text-muted"></i>
-                                <p class="text-muted mb-0">No versions found for this model</p>
+                    <!-- CLEAR, CENTERED EMPTY STATE -->
+                    <tr class="mv-empty-row">
+                        <td colspan="8" class="mv-empty-cell">
+                            <div class="mv-empty-wrapper">
+                                <div class="mv-empty-title">No versions found for this model</div>
+                                <div class="mv-empty-sub">
+                                    Click <strong>New Version</strong> to upload and validate your first model version.
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -510,12 +512,32 @@
     color: #e5e7eb;
 }
 
-/* Empty state */
-.empty-state-inline {
+/* EMPTY STATE ROW */
+.mv-empty-row {
+    background: rgba(255,255,255,0.01);
+}
+
+.mv-empty-cell {
+    padding: 40px 0 44px;
+    text-align: center;
+}
+
+.mv-empty-wrapper {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
+}
+
+.mv-empty-title {
+    color: #e5e7eb;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.mv-empty-sub {
+    color: #9ca3af;
+    font-size: 0.8rem;
 }
 
 /* Responsive tweaks */
