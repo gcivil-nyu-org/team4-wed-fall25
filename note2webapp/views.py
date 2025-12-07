@@ -1199,8 +1199,7 @@ def model_comments_view(request, version_id):
     version = get_object_or_404(ModelVersion, id=version_id)
 
     comments = (
-        ModelComment.objects
-        .filter(model_version=version, parent__isnull=True)
+        ModelComment.objects.filter(model_version=version, parent__isnull=True)
         .select_related("user__profile")
         .prefetch_related("replies__user__profile", "reactions")
     )
@@ -1220,7 +1219,7 @@ def model_comments_view(request, version_id):
     default_back = reverse("test_model_cpu", args=[version.id])
     return_to_param = request.GET.get("return_to")
     model_id = request.GET.get("model_id", version.upload.id)
-    
+
     # Build proper back URL based on return_to parameter
     if return_to_param == "reviewer":
         # Go to reviewer dashboard with detail page
@@ -1242,7 +1241,8 @@ def model_comments_view(request, version_id):
         "version": version,
         "comments": comments,
         "user_reactions": user_reactions,
-        "is_uploader": request.user.is_authenticated and request.user == version.upload.user,
+        "is_uploader": request.user.is_authenticated
+        and request.user == version.upload.user,
         "back_url": return_to,
     }
     return render(request, "note2webapp/model_comments.html", context)
@@ -1256,12 +1256,12 @@ def model_comments_view(request, version_id):
 def toggle_comment_reaction(request, comment_id):
     """
     Toggle a user's reaction (like/dislike) on a comment or reply.
-    
+
     Returns:
     - 400 if user tries to react to their own comment
     - 400 if reaction_type is invalid
     - 200 with success=True if reaction was toggled/deleted
-    
+
     Response includes:
     - likes_count: current like count
     - dislikes_count: current dislike count
@@ -1285,7 +1285,9 @@ def toggle_comment_reaction(request, comment_id):
 
     reaction_type = request.POST.get("reaction_type")
     if reaction_type not in ("like", "dislike"):
-        return JsonResponse({"success": False, "error": "Invalid reaction type."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "Invalid reaction type."}, status=400
+        )
 
     # Toggle / switch the reaction
     # If the user already has this reaction, delete it.
