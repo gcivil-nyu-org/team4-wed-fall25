@@ -1,4 +1,3 @@
-# note2webapp/views.py
 import os
 import json
 import importlib
@@ -11,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
+from django.urls import reverse
 from django.utils import timezone
 from django import forms
 from django.db import transaction, IntegrityError, models
@@ -33,6 +33,7 @@ from .utils import (
     delete_version_files_and_dir,
     delete_model_media_tree,
 )
+from .decorators import role_required
 from openai import OpenAI
 
 
@@ -273,7 +274,7 @@ def model_uploader_dashboard(request):
                     request.FILES["schema_file"]
                 )
 
-                # 2. Compare to every non-deleted version’s stored files
+                # 2. Compare to every non-deleted version's stored files
                 duplicate_found = False
                 for v in ModelVersion.objects.filter(is_deleted=False):
                     try:
@@ -390,7 +391,7 @@ def model_uploader_dashboard(request):
 # ---------------------------------------------------------
 # REVIEWER DASHBOARD
 # ---------------------------------------------------------
-@login_required
+@role_required("reviewer")
 def reviewer_dashboard(request):
     page = request.GET.get("page", "list")
     pk = request.GET.get("pk")
@@ -1182,142 +1183,146 @@ def admin_stats(request):
     return render(request, "note2webapp/admin_stats.html", context)
 
 
+# ---------------------------------------------------------
+# MODEL COMMENTS VIEW
+# ---------------------------------------------------------
 @login_required
 def model_comments_view(request, version_id):
+    """
+    Display comments thread for a specific model version.
+    Includes:
+    - Parent comments and their replies
+    - User reaction state (like/dislike)
+    - Author badges and role indicators
+    - Back button with return_to parameter support
+    """
     version = get_object_or_404(ModelVersion, id=version_id)
-    comments = ModelComment.objects.filter(
-        model_version=version, parent=None
-    ).prefetch_related(
-        "replies",
-        "replies__user__profile",
-        "replies__reactions",
-        "user__profile",
-        "reactions",
+
+    comments = (
+        ModelComment.objects.filter(model_version=version, parent__isnull=True)
+        .select_related("user__profile")
+        .prefetch_related("replies__user__profile", "reactions")
     )
 
-    # Check if user is uploader or reviewer
-    is_uploader = version.upload.user == request.user
-    is_reviewer = request.user.profile.role == "reviewer"
-
-    # Get user reactions for all comments and replies
-    comment_ids = [c.id for c in comments]
-    for comment in comments:
-        comment_ids.extend([r.id for r in comment.replies.all()])
-
-    user_reactions = {}
-    if comment_ids:
+    # map: comment_id → 'like' or 'dislike' for the current user
+    if request.user.is_authenticated:
         reactions = CommentReaction.objects.filter(
-            comment_id__in=comment_ids, user=request.user
+            user=request.user,
+            comment__model_version=version,
         )
-        for reaction in reactions:
-            user_reactions[reaction.comment_id] = reaction.reaction_type
-
-    # Add UTC timestamps to comments and replies for JavaScript conversion
-    for comment in comments:
-        # Ensure timezone-aware datetime
-        if timezone.is_aware(comment.created_at):
-            comment.created_at_utc = comment.created_at.isoformat()
-        else:
-            # If naive, assume UTC
-            comment.created_at_utc = timezone.make_aware(
-                comment.created_at, timezone.utc
-            ).isoformat()
-
-        for reply in comment.replies.all():
-            if timezone.is_aware(reply.created_at):
-                reply.created_at_utc = reply.created_at.isoformat()
-            else:
-                reply.created_at_utc = timezone.make_aware(
-                    reply.created_at, timezone.utc
-                ).isoformat()
-
-    # Determine back URL based on user role and referer
-    return_to = request.GET.get("return_to", "")
-    back_url = None
-
-    if return_to == "reviewer":
-        # Reviewer coming from reviewer dashboard
-        back_url = f"/reviewer/?page=detail&pk={version.upload.id}"
-    elif return_to == "dashboard":
-        # Uploader coming from dashboard detail page
-        back_url = f"/dashboard/?page=detail&pk={version.upload.id}"
-    elif return_to == "test":
-        # Coming from test model page
-        back_url = f"/test-model/{version_id}/"
-    elif is_reviewer:
-        # Reviewer (default to reviewer dashboard)
-        back_url = f"/reviewer/?page=detail&pk={version.upload.id}"
-    elif is_uploader:
-        # Uploader (default to dashboard detail page)
-        back_url = f"/dashboard/?page=detail&pk={version.upload.id}"
+        user_reactions = {r.comment_id: r.reaction_type for r in reactions}
     else:
-        # Fallback to dashboard
-        back_url = "/dashboard/"
+        user_reactions = {}
+
+    # Back button target:
+    # Constructs proper URL based on user role and return_to parameter
+    default_back = reverse("test_model_cpu", args=[version.id])
+    return_to_param = request.GET.get("return_to")
+    model_id = request.GET.get("model_id", version.upload.id)
+
+    # Build proper back URL based on return_to parameter
+    if return_to_param == "reviewer":
+        # Go to reviewer dashboard with detail page
+        return_to = f"{reverse('reviewer_dashboard')}?page=detail&pk={model_id}"
+    elif return_to_param == "uploader":
+        # Go to uploader version management
+        return_to = reverse("model_versions", args=[model_id])
+    elif return_to_param == "dashboard":
+        # Go to general dashboard
+        return_to = f"{reverse('dashboard')}?page=detail&pk={model_id}"
+    elif return_to_param and return_to_param.startswith("/"):
+        # Custom URL path
+        return_to = return_to_param
+    else:
+        # Default to test model page
+        return_to = default_back
 
     context = {
         "version": version,
         "comments": comments,
-        "is_uploader": is_uploader,
-        "is_reviewer": is_reviewer,
-        "back_url": back_url,
-        "user_reactions": json.dumps(user_reactions),
+        "user_reactions": user_reactions,
+        "is_uploader": request.user.is_authenticated
+        and request.user == version.upload.user,
+        "back_url": return_to,
     }
     return render(request, "note2webapp/model_comments.html", context)
 
 
+# ---------------------------------------------------------
+# TOGGLE COMMENT REACTION (LIKE/DISLIKE)
+# ---------------------------------------------------------
 @login_required
+@require_POST
 def toggle_comment_reaction(request, comment_id):
-    """API endpoint to like/dislike a comment"""
-    if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
+    """
+    Toggle a user's reaction (like/dislike) on a comment or reply.
 
-    try:
-        comment = get_object_or_404(ModelComment, id=comment_id)
-        reaction_type = request.POST.get("reaction_type")
+    Returns:
+    - 400 if user tries to react to their own comment
+    - 400 if reaction_type is invalid
+    - 200 with success=True if reaction was toggled/deleted
 
-        if reaction_type not in ["like", "dislike"]:
-            return JsonResponse({"error": "Invalid reaction type"}, status=400)
+    Response includes:
+    - likes_count: current like count
+    - dislikes_count: current dislike count
+    - user_reaction: 'like', 'dislike', or None
+    """
+    comment = get_object_or_404(ModelComment, id=comment_id)
 
-        # Get or create reaction
-        reaction, created = CommentReaction.objects.get_or_create(
-            comment=comment,
-            user=request.user,
-            defaults={"reaction_type": reaction_type},
-        )
-
-        if not created:
-            # If user already reacted, toggle or change reaction
-            if reaction.reaction_type == reaction_type:
-                # Same reaction - remove it
-                reaction.delete()
-                likes_count = comment.get_likes_count()
-                dislikes_count = comment.get_dislikes_count()
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "action": "removed",
-                        "likes_count": likes_count,
-                        "dislikes_count": dislikes_count,
-                        "user_reaction": None,
-                    }
-                )
-            else:
-                # Different reaction - change it
-                reaction.reaction_type = reaction_type
-                reaction.save()
-
-        likes_count = comment.get_likes_count()
-        dislikes_count = comment.get_dislikes_count()
-
+    # 🔒 Block reacting to your own comment (uploader OR reviewer)
+    # This is enforced on frontend AND backend for security
+    if comment.user_id == request.user.id:
         return JsonResponse(
             {
-                "success": True,
-                "action": "added" if created else "changed",
-                "likes_count": likes_count,
-                "dislikes_count": dislikes_count,
-                "user_reaction": reaction_type,
-            }
+                "success": False,
+                "error": "You can't like or dislike your own comment.",
+                "likes_count": comment.get_likes_count(),
+                "dislikes_count": comment.get_dislikes_count(),
+                "user_reaction": None,
+            },
+            status=400,
         )
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    reaction_type = request.POST.get("reaction_type")
+    if reaction_type not in ("like", "dislike"):
+        return JsonResponse(
+            {"success": False, "error": "Invalid reaction type."}, status=400
+        )
+
+    # Toggle / switch the reaction
+    # If the user already has this reaction, delete it.
+    # If they have a different reaction, replace it.
+    # If they have no reaction, create it.
+    reaction, created = CommentReaction.objects.get_or_create(
+        user=request.user,
+        comment=comment,
+        defaults={"reaction_type": reaction_type},
+    )
+
+    if not created:
+        if reaction.reaction_type == reaction_type:
+            # same reaction again → remove it (toggle off)
+            reaction.delete()
+        else:
+            # switch like ↔ dislike
+            reaction.reaction_type = reaction_type
+            reaction.save()
+
+    likes = comment.get_likes_count()
+    dislikes = comment.get_dislikes_count()
+
+    # this user's current reaction (if any)
+    try:
+        current = CommentReaction.objects.get(user=request.user, comment=comment)
+        user_reaction = current.reaction_type
+    except CommentReaction.DoesNotExist:
+        user_reaction = None
+
+    return JsonResponse(
+        {
+            "success": True,
+            "likes_count": likes,
+            "dislikes_count": dislikes,
+            "user_reaction": user_reaction,
+        }
+    )

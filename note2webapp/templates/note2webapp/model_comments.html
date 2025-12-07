@@ -15,175 +15,177 @@
         <div class="mc-content-wrapper">
             <!-- Model Info Card -->
             <div class="mc-model-card">
-            <div class="mc-model-header">
-                <h3 class="mc-model-title">{{ version.upload.name }} - {{ version.tag }}</h3>
-                <div class="mc-model-meta">
-                    <span class="mc-meta-item">
-                        <span class="mc-meta-label">Uploaded by:</span>
-                        <strong>{{ version.upload.user.username }}</strong>
-                    </span>
-                    <span class="mc-meta-divider">•</span>
-                    <span class="mc-meta-item">
-                        <span class="mc-meta-label">Status:</span>
-                        <span class="mc-status-badge mc-status-{{ version.status|lower }}">{{ version.status }}</span>
-                    </span>
+                <div class="mc-model-header">
+                    <h3 class="mc-model-title">{{ version.upload.name }} - {{ version.tag }}</h3>
+                    <div class="mc-model-meta">
+                        <span class="mc-meta-item">
+                            <span class="mc-meta-label">Uploaded by:</span>
+                            <strong>{{ version.upload.user.username }}</strong>
+                        </span>
+                        <span class="mc-meta-divider">•</span>
+                        <span class="mc-meta-item">
+                            <span class="mc-meta-label">Status:</span>
+                            <span class="mc-status-badge mc-status-{{ version.status|lower }}">{{ version.status }}</span>
+                        </span>
+                    </div>
                 </div>
-            </div>
 
-            {% if version.information %}
-            <div class="mc-model-info">
-                <p class="mc-info-text">{{ version.information }}</p>
+                {% if version.information %}
+                <div class="mc-model-info">
+                    <p class="mc-info-text">{{ version.information }}</p>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
 
             <!-- Comments Card -->
             <div class="mc-comments-card">
-            <div class="mc-comments-header">
-                <h4 class="mc-comments-title">💬 Discussion & Feedback</h4>
-            </div>
+                <div class="mc-comments-header">
+                    <h4 class="mc-comments-title">💬 Discussion & Feedback</h4>
+                </div>
 
-            <div class="mc-comments-body">
-                <!-- Comments Container -->
-                <div id="comments-container" class="mc-comments-container">
+                <div class="mc-comments-body">
+                    <!-- Comments Container -->
+                    <div id="comments-container" class="mc-comments-container">
 
-                    {% for comment in comments %}
-                    <div class="mc-comment" id="comment-{{ comment.id }}" data-comment-id="{{ comment.id }}">
-                        <div class="mc-comment-inner">
-                            <div class="mc-comment-avatar">
-                                {{ comment.user.username|slice:":1"|upper }}
-                            </div>
-                            
-                            <div class="mc-comment-content">
-                                <div class="mc-comment-header">
-                                    <div class="mc-comment-author">
-                                        <span class="mc-author-name">{{ comment.user.username }}</span>
-                                        <span class="mc-role-badge mc-role-{{ comment.user.profile.role|lower }}">{{ comment.user.profile.role }}</span>
-                                        {% if comment.user == version.upload.user %}
-                                        <span class="mc-author-badge">Author</span>
-                                        {% endif %}
-                                    </div>
-                                    <span class="mc-comment-time utc-time" data-utc="{{ comment.created_at_utc }}">{{ comment.created_at|date:"M d, Y H:i" }}</span>
-                                </div>
-                                
-                                <p class="mc-comment-text">{{ comment.content }}</p>
-                                
-                                <div class="mc-comment-actions">
-                                    <button class="mc-reply-btn" data-comment-id="{{ comment.id }}">
-                                        <span>💬</span>
-                                        <span>Reply</span>
-                                    </button>
-                                    
-                                    <div class="mc-reaction-buttons">
-                                        <button class="mc-like-btn" 
-                                                data-comment-id="{{ comment.id }}"
-                                                data-reaction-type="like">
-                                            <span class="mc-reaction-icon">👍</span>
-                                            <span class="mc-reaction-count like-count">{{ comment.get_likes_count }}</span>
-                                        </button>
-                                        <button class="mc-dislike-btn" 
-                                                data-comment-id="{{ comment.id }}"
-                                                data-reaction-type="dislike">
-                                            <span class="mc-reaction-icon">👎</span>
-                                            <span class="mc-reaction-count dislike-count">{{ comment.get_dislikes_count }}</span>
-                                        </button>
-                                    </div>
+                        {% for comment in comments %}
+                        <div class="mc-comment"
+                             id="comment-{{ comment.id }}"
+                             data-comment-id="{{ comment.id }}"
+                             {% if comment.user == request.user %}data-is-own="true"{% else %}data-is-own="false"{% endif %}>
+                            <div class="mc-comment-inner">
+                                <div class="mc-comment-avatar">
+                                    {{ comment.user.username|slice:":1"|upper }}
                                 </div>
 
-                                
-                                <!-- Replies -->
-                                {% if comment.replies.all %}
-                                <div class="mc-replies" id="replies-{{ comment.id }}">
-                                    {% for reply in comment.replies.all %}
-                                    <div class="mc-reply" id="comment-{{ reply.id }}" data-comment-id="{{ reply.id }}">
-                                        <div class="mc-reply-header">
-                                            <div class="mc-reply-author">
-                                                <span class="mc-author-name">{{ reply.user.username }}</span>
-                                                <span class="mc-role-badge mc-role-{{ reply.user.profile.role|lower }}">{{ reply.user.profile.role }}</span>
-                                                {% if reply.user == version.upload.user %}
-                                                <span class="mc-author-badge">Author</span>
-                                                {% endif %}
-                                            </div>
-                                            <span class="mc-comment-time utc-time" data-utc="{{ reply.created_at_utc }}">{{ reply.created_at|date:"M d, Y H:i" }}</span>
+                                <div class="mc-comment-content">
+                                    <div class="mc-comment-header">
+                                        <div class="mc-comment-author">
+                                            <span class="mc-author-name">{{ comment.user.username }}</span>
+                                            <span class="mc-role-badge mc-role-{{ comment.user.profile.role|lower }}">
+                                                {{ comment.user.profile.role }}
+                                            </span>
                                         </div>
-                                        <p class="mc-reply-text">{{ reply.content }}</p>
-                                        <div class="mc-reaction-buttons mc-reply-reactions">
-                                            <button class="mc-like-btn" 
-                                                    data-comment-id="{{ reply.id }}"
+                                        <span class="mc-comment-time utc-time"
+                                              data-utc="{{ comment.created_at_utc }}">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                                    </div>
+
+                                    <p class="mc-comment-text">{{ comment.content }}</p>
+
+                                    <div class="mc-comment-actions">
+                                        <button class="mc-reply-btn" data-comment-id="{{ comment.id }}">
+                                            <span>💬</span>
+                                            <span>Reply</span>
+                                        </button>
+
+                                        {% if request.user.is_authenticated and comment.user_id != request.user.id %}
+                                        <div class="mc-reaction-buttons">
+                                            <button class="mc-like-btn"
+                                                    data-comment-id="{{ comment.id }}"
                                                     data-reaction-type="like">
                                                 <span class="mc-reaction-icon">👍</span>
-                                                <span class="mc-reaction-count like-count">{{ reply.get_likes_count }}</span>
+                                                <span class="mc-reaction-count like-count">{{ comment.get_likes_count }}</span>
                                             </button>
-                                            <button class="mc-dislike-btn" 
-                                                    data-comment-id="{{ reply.id }}"
+                                            <button class="mc-dislike-btn"
+                                                    data-comment-id="{{ comment.id }}"
                                                     data-reaction-type="dislike">
                                                 <span class="mc-reaction-icon">👎</span>
-                                                <span class="mc-reaction-count dislike-count">{{ reply.get_dislikes_count }}</span>
+                                                <span class="mc-reaction-count dislike-count">{{ comment.get_dislikes_count }}</span>
                                             </button>
                                         </div>
+                                        {% endif %}
                                     </div>
-                                    {% endfor %}
+
+                                    <!-- Replies -->
+                                    {% if comment.replies.all %}
+                                    <div class="mc-replies" id="replies-{{ comment.id }}">
+                                        {% for reply in comment.replies.all %}
+                                        <div class="mc-reply"
+                                             id="comment-{{ reply.id }}"
+                                             data-comment-id="{{ reply.id }}"
+                                             {% if reply.user == request.user %}data-is-own="true"{% else %}data-is-own="false"{% endif %}>
+                                            <div class="mc-reply-header">
+                                                <div class="mc-reply-author">
+                                                    <span class="mc-author-name">{{ reply.user.username }}</span>
+                                                    <span class="mc-role-badge mc-role-{{ reply.user.profile.role|lower }}">
+                                                        {{ reply.user.profile.role }}
+                                                    </span>
+                                                </div>
+                                                <span class="mc-comment-time utc-time"
+                                                      data-utc="{{ reply.created_at_utc }}">{{ reply.created_at|date:"M d, Y H:i" }}</span>
+                                            </div>
+                                            <p class="mc-reply-text">{{ reply.content }}</p>
+
+                                            {% if request.user.is_authenticated and reply.user_id != request.user.id %}
+                                            <div class="mc-reaction-buttons mc-reply-reactions">
+                                                <button class="mc-like-btn"
+                                                        data-comment-id="{{ reply.id }}"
+                                                        data-reaction-type="like">
+                                                    <span class="mc-reaction-icon">👍</span>
+                                                    <span class="mc-reaction-count like-count">{{ reply.get_likes_count }}</span>
+                                                </button>
+                                                <button class="mc-dislike-btn"
+                                                        data-comment-id="{{ reply.id }}"
+                                                        data-reaction-type="dislike">
+                                                    <span class="mc-reaction-icon">👎</span>
+                                                    <span class="mc-reaction-count dislike-count">{{ reply.get_dislikes_count }}</span>
+                                                </button>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <div class="mc-replies" id="replies-{{ comment.id }}"></div>
+                                    {% endif %}
                                 </div>
-                                {% else %}
-                                <div class="mc-replies" id="replies-{{ comment.id }}"></div>
-                                {% endif %}
                             </div>
                         </div>
-                    </div>
-                    {% empty %}
-                    <div class="mc-empty-state" id="mc-empty-state">
-                        <div class="mc-empty-icon">💬</div>
-                        <p class="mc-empty-text">No comments yet. Be the first to comment!</p>
-                    </div>
-                    {% endfor %}
-
-                </div>
-
-                <!-- Comment Input -->
-                <div class="mc-input-section">
-                    <div id="reply-indicator" class="mc-reply-indicator d-none">
-                        <div class="mc-reply-indicator-content">
-                            <span class="mc-reply-label">Replying to</span>
-                            <strong id="reply-to-user" class="mc-reply-user"></strong>
+                        {% empty %}
+                        <div class="mc-empty-state" id="mc-empty-state">
+                            <div class="mc-empty-icon">💬</div>
+                            <p class="mc-empty-text">No comments yet. Be the first to comment!</p>
                         </div>
-                        <button type="button" class="mc-cancel-reply" id="cancel-reply">×</button>
+                        {% endfor %}
+
                     </div>
 
-                    <div class="mc-input-wrapper">
-                        <input 
-                            id="comment-input" 
-                            type="text" 
-                            class="mc-comment-input" 
-                            placeholder="Add a comment..."
-                        >
-                        <button id="comment-submit" class="mc-submit-btn">
-                            <span id="submit-text">Comment</span>
-                        </button>
+                    <!-- Comment Input -->
+                    <div class="mc-input-section">
+                        <div id="reply-indicator" class="mc-reply-indicator d-none">
+                            <div class="mc-reply-indicator-content">
+                                <span class="mc-reply-label">Replying to</span>
+                                <strong id="reply-to-user" class="mc-reply-user"></strong>
+                            </div>
+                            <button type="button" class="mc-cancel-reply" id="cancel-reply">×</button>
+                        </div>
+
+                        <div class="mc-input-wrapper">
+                            <input
+                                id="comment-input"
+                                type="text"
+                                class="mc-comment-input"
+                                placeholder="Add a comment..."
+                            >
+                            <button id="comment-submit" class="mc-submit-btn">
+                                <span id="submit-text">Comment</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </div> <!-- /mc-comments-body -->
             </div>
         </div>
     </div>
 </div>
 
-
-
 <script>
-    // Convert UTC timestamps to local device time
+    // ---------- TIMEZONE HANDLING ----------
     function formatToLocalTime(utcString) {
         if (!utcString) return '';
-        
-        // Parse the ISO 8601 UTC string (should include timezone info)
         const date = new Date(utcString);
-        
-        // Check if date is valid
         if (isNaN(date.getTime())) {
             console.warn('Invalid date string:', utcString);
-            return utcString; // Return original if parsing fails
+            return utcString;
         }
-        
-        // Format to local time
         const options = {
             year: 'numeric',
             month: 'short',
@@ -199,356 +201,261 @@
             const utc = el.dataset.utc;
             if (utc) {
                 const localTime = formatToLocalTime(utc);
-                if (localTime) {
-                    el.textContent = localTime;
-                }
+                if (localTime) el.textContent = localTime;
             }
         });
     }
 
+    // ---------- GLOBALS ----------
     const versionId = "{{ version.id }}";
-
-    const userName = "{{ request.user.username }}";
-
-    const userRole = "{{ request.user.profile.role }}";
-
-    const isAuthor = "{{ is_uploader|yesno:'true,false' }}" === "true";
-
-    
+    const userName  = "{{ request.user.username }}";
+    const userRole  = "{{ request.user.profile.role }}";
 
     let replyToCommentId = null;
+    let replyToUsername  = null;
 
-    let replyToUsername = null;
-
-    
-
+    // ---------- WEBSOCKET ----------
     const chatSocket = new WebSocket(
-
         'ws://' + window.location.host + '/ws/model/' + versionId + '/comments/'
-
     );
 
-
-
     chatSocket.onmessage = function(e) {
-
         const data = JSON.parse(e.data);
-
         addCommentToUI(data);
-
     };
-
-
 
     chatSocket.onclose = function(e) {
-
         console.error('WebSocket closed unexpectedly');
-
     };
 
-
-
+    // ---------- ADD COMMENT TO UI (for realtime messages) ----------
     function addCommentToUI(data) {
-
-        const container = data.parent_id 
-
+        const container = data.parent_id
             ? document.getElementById(`replies-${data.parent_id}`)
-
             : document.getElementById('comments-container');
-
-        
 
         if (!container) return;
 
-        
-
         const isReply = data.parent_id !== null;
+        const isOwn   = data.username === userName;
 
-        const commentDiv = document.createElement('div');
+        const roleSlug  = (data.user_role || userRole || '').toLowerCase();
+        const roleLabel = data.user_role || userRole || '';
 
-        commentDiv.className = isReply ? 'mc-reply' : 'mc-comment';
+        const isModelAuthor = (data.username === "{{ version.upload.user.username }}");
+        const authorBadge = '';
 
-        commentDiv.id = `comment-${data.comment_id}`;
+        const timeAttr = data.timestamp_utc || data.timestamp || '';
 
-        
-
-        const authorBadge = data.username === "{{ version.upload.user.username }}" 
-
-            ? '<span class="badge bg-success ms-1">Author</span>' 
-
-            : '';
-
-        
+        let commentHtml = '';
 
         if (isReply) {
-            commentDiv.innerHTML = `
-                <div class="mc-reply-header">
-                    <div class="mc-reply-author">
-                        <span class="mc-author-name">${data.username}</span>
-                        <span class="mc-role-badge mc-role-${data.user_role.toLowerCase()}">${data.user_role}</span>
-                        ${authorBadge}
+            commentHtml = `
+                <div class="mc-reply" id="comment-${data.comment_id}"
+                     data-comment-id="${data.comment_id}"
+                     data-is-own="${isOwn ? 'true' : 'false'}">
+                    <div class="mc-reply-header">
+                        <div class="mc-reply-author">
+                            <span class="mc-author-name">${data.username}</span>
+                            ${ roleLabel ? `<span class="mc-role-badge mc-role-${roleSlug}">${roleLabel}</span>` : '' }
+                            ${authorBadge}
+                        </div>
+                        <span class="mc-comment-time utc-time" data-utc="${timeAttr}">${data.timestamp}</span>
                     </div>
-                    <span class="mc-comment-time utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</span>
-                </div>
-                <p class="mc-reply-text">${data.message}</p>
-                <div class="mc-reaction-buttons mc-reply-reactions">
-                    <button class="mc-like-btn" 
-                            data-comment-id="${data.comment_id}"
-                            data-reaction-type="like">
-                        <span class="mc-reaction-icon">👍</span>
-                        <span class="mc-reaction-count like-count">0</span>
-                    </button>
-                    <button class="mc-dislike-btn" 
-                            data-comment-id="${data.comment_id}"
-                            data-reaction-type="dislike">
-                        <span class="mc-reaction-icon">👎</span>
-                        <span class="mc-reaction-count dislike-count">0</span>
-                    </button>
+                    <p class="mc-reply-text">${data.message}</p>
+                    ${!isOwn ? `
+                    <div class="mc-reaction-buttons mc-reply-reactions">
+                        <button class="mc-like-btn"
+                                data-comment-id="${data.comment_id}"
+                                data-reaction-type="like">
+                            <span class="mc-reaction-icon">👍</span>
+                            <span class="mc-reaction-count like-count">0</span>
+                        </button>
+                        <button class="mc-dislike-btn"
+                                data-comment-id="${data.comment_id}"
+                                data-reaction-type="dislike">
+                            <span class="mc-reaction-icon">👎</span>
+                            <span class="mc-reaction-count dislike-count">0</span>
+                        </button>
+                    </div>` : '' }
                 </div>
             `;
-            
-            // Ensure the commentDiv has the correct ID
-            commentDiv.id = `comment-${data.comment_id}`;
-            commentDiv.setAttribute('data-comment-id', data.comment_id);
-            
-            // For replies, add event listeners to like/dislike buttons
-            commentDiv.querySelectorAll('.mc-like-btn, .mc-dislike-btn').forEach(btn => {
-                btn.addEventListener('click', handleReactionClick);
-            });
         } else {
-            commentDiv.innerHTML = `
-                <div class="mc-comment-inner">
-                    <div class="mc-comment-avatar">
-                        ${data.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="mc-comment-content">
-                        <div class="mc-comment-header">
-                            <div class="mc-comment-author">
-                                <span class="mc-author-name">${data.username}</span>
-                                <span class="mc-role-badge mc-role-${data.user_role.toLowerCase()}">${data.user_role}</span>
-                                ${authorBadge}
-                            </div>
-                            <span class="mc-comment-time utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</span>
+            commentHtml = `
+                <div class="mc-comment" id="comment-${data.comment_id}"
+                     data-comment-id="${data.comment_id}"
+                     data-is-own="${isOwn ? 'true' : 'false'}">
+                    <div class="mc-comment-inner">
+                        <div class="mc-comment-avatar">
+                            ${data.username.charAt(0).toUpperCase()}
                         </div>
-                        <p class="mc-comment-text">${data.message}</p>
-                        <div class="mc-comment-actions">
-                            <button class="mc-reply-btn" data-comment-id="${data.comment_id}">
-                                <span>💬</span>
-                                <span>Reply</span>
-                            </button>
-                            <div class="mc-reaction-buttons">
-                                <button class="mc-like-btn" 
-                                        data-comment-id="${data.comment_id}"
-                                        data-reaction-type="like">
-                                    <span class="mc-reaction-icon">👍</span>
-                                    <span class="mc-reaction-count like-count">0</span>
-                                </button>
-                                <button class="mc-dislike-btn" 
-                                        data-comment-id="${data.comment_id}"
-                                        data-reaction-type="dislike">
-                                    <span class="mc-reaction-icon">👎</span>
-                                    <span class="mc-reaction-count dislike-count">0</span>
-                                </button>
+                        <div class="mc-comment-content">
+                            <div class="mc-comment-header">
+                                <div class="mc-comment-author">
+                                    <span class="mc-author-name">${data.username}</span>
+                                    ${ roleLabel ? `<span class="mc-role-badge mc-role-${roleSlug}">${roleLabel}</span>` : '' }
+                                    ${authorBadge}
+                                </div>
+                                <span class="mc-comment-time utc-time" data-utc="${timeAttr}">${data.timestamp}</span>
                             </div>
+                            <p class="mc-comment-text">${data.message}</p>
+                            <div class="mc-comment-actions">
+                                <button class="mc-reply-btn" data-comment-id="${data.comment_id}">
+                                    <span>💬</span>
+                                    <span>Reply</span>
+                                </button>
+                                ${!isOwn ? `
+                                <div class="mc-reaction-buttons">
+                                    <button class="mc-like-btn"
+                                            data-comment-id="${data.comment_id}"
+                                            data-reaction-type="like">
+                                        <span class="mc-reaction-icon">👍</span>
+                                        <span class="mc-reaction-count like-count">0</span>
+                                    </button>
+                                    <button class="mc-dislike-btn"
+                                            data-comment-id="${data.comment_id}"
+                                            data-reaction-type="dislike">
+                                        <span class="mc-reaction-icon">👎</span>
+                                        <span class="mc-reaction-count dislike-count">0</span>
+                                    </button>
+                                </div>` : '' }
+                            </div>
+                            <div class="mc-replies" id="replies-${data.comment_id}"></div>
                         </div>
-                        <div class="mc-replies" id="replies-${data.comment_id}"></div>
                     </div>
                 </div>
             `;
-            
-            // Add event listener to new reply button
-            const replyBtn = commentDiv.querySelector('.mc-reply-btn');
-            if (replyBtn) {
-                replyBtn.addEventListener('click', function() {
-                    handleReplyClick(this);
-                });
-            }
-            
-            // Add event listeners to like/dislike buttons
-            commentDiv.querySelectorAll('.mc-like-btn, .mc-dislike-btn').forEach(btn => {
-                btn.addEventListener('click', handleReactionClick);
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = commentHtml.trim();
+        const commentDiv = wrapper.firstElementChild;
+
+        // mark if this is the current user's own comment
+        commentDiv.dataset.isOwn = isOwn ? "true" : "false";
+
+        container.appendChild(commentDiv);
+
+        // hide empty state if first comment
+        const emptyState = document.getElementById('mc-empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+
+        // Attach handlers
+        const replyBtn = commentDiv.querySelector('.mc-reply-btn');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', function () {
+                handleReplyClick(this);
             });
         }
-        
-        container.appendChild(commentDiv);
-        
-        // Hide empty state if it exists (when first comment is added)
-        const emptyState = document.getElementById('mc-empty-state');
-        if (emptyState) {
-            emptyState.style.display = 'none';
-        }
-        
-        // Update UTC times for the newly added comment
-        const timeElement = commentDiv.querySelector('.utc-time');
-        if (timeElement && timeElement.dataset.utc) {
-            timeElement.textContent = formatToLocalTime(timeElement.dataset.utc);
-        }
-        
-        container.scrollTop = container.scrollHeight;
+        commentDiv.querySelectorAll('.mc-like-btn, .mc-dislike-btn').forEach(btn => {
+            btn.addEventListener('click', handleReactionClick);
+        });
 
+        // Localise time
+        const timeEl = commentDiv.querySelector('.utc-time');
+        if (timeEl && timeEl.dataset.utc) {
+            timeEl.textContent = formatToLocalTime(timeEl.dataset.utc);
+        }
+
+        container.scrollTop = container.scrollHeight;
     }
 
-
-
+    // ---------- REPLY HANDLING ----------
     function handleReplyClick(button) {
         const commentId = button.getAttribute('data-comment-id');
         const commentDiv = document.getElementById(`comment-${commentId}`);
         const username = commentDiv.querySelector('.mc-author-name').textContent.trim();
 
-        
-
         replyToCommentId = commentId;
-
         replyToUsername = username;
 
-        
-
         document.getElementById('reply-indicator').classList.remove('d-none');
-
         document.getElementById('reply-to-user').textContent = username;
-
         document.getElementById('submit-text').textContent = 'Reply';
-
         document.getElementById('comment-input').focus();
-
     }
 
-
-
-    document.getElementById('cancel-reply').addEventListener('click', function() {
-
+    document.getElementById('cancel-reply').addEventListener('click', function () {
         replyToCommentId = null;
-
         replyToUsername = null;
-
         document.getElementById('reply-indicator').classList.add('d-none');
-
         document.getElementById('submit-text').textContent = 'Comment';
-
     });
 
-
-
-    // Add event listeners to existing reply buttons
+    // existing reply buttons
     document.querySelectorAll('.mc-reply-btn').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             handleReplyClick(this);
         });
     });
 
-
-
-    document.getElementById('comment-input').addEventListener('keypress', function(e) {
-
+    // submit on Enter
+    document.getElementById('comment-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
-
             document.getElementById('comment-submit').click();
-
         }
-
     });
 
-
-
-    // Handle like/dislike button clicks
+    // ---------- REACTIONS ----------
     function handleReactionClick(e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const button = e.currentTarget;
         const commentId = button.getAttribute('data-comment-id');
         const reactionType = button.getAttribute('data-reaction-type');
-        
-        if (!commentId || !reactionType) {
-            console.error('Missing comment ID or reaction type', { commentId, reactionType });
+
+        if (!commentId || !reactionType) return;
+
+        // ✅ FIXED: Check if this is the user's own comment/reply before making request
+        const commentDiv = document.getElementById(`comment-${commentId}`);
+        if (commentDiv && commentDiv.dataset.isOwn === 'true') {
+            alert("You can't react to your own comment.");
             return;
         }
-        
-        // Disable button during request
+
         button.disabled = true;
-        
-        // Create form data
+
         const formData = new FormData();
         formData.append('reaction_type', reactionType);
-        
-        // Send request
+
         fetch(`/api/comment/${commentId}/reaction/`, {
             method: 'POST',
             body: formData,
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Reaction response:', data);
             if (data.success) {
-                // Update counts - try multiple ways to find the comment div
-                let commentDiv = document.getElementById(`comment-${commentId}`);
-                if (!commentDiv) {
-                    // Try finding by data attribute
-                    commentDiv = document.querySelector(`[data-comment-id="${commentId}"]`);
-                }
-                
-                if (commentDiv) {
-                    console.log('Found comment div:', commentDiv);
-                    const likeBtn = commentDiv.querySelector('.mc-like-btn');
-                    const dislikeBtn = commentDiv.querySelector('.mc-dislike-btn');
-                    const likeCount = commentDiv.querySelector('.like-count');
-                    const dislikeCount = commentDiv.querySelector('.dislike-count');
-                    
-                    console.log('Found elements:', { likeBtn, dislikeBtn, likeCount, dislikeCount });
-                    console.log('Counts to update:', { likes: data.likes_count, dislikes: data.dislikes_count });
-                    
-                    if (likeCount) {
-                        likeCount.textContent = data.likes_count;
-                        console.log('Updated like count to:', data.likes_count);
-                    } else {
-                        console.warn('Like count element not found');
+                let commentDiv = document.getElementById(`comment-${commentId}`) ||
+                                 document.querySelector(`[data-comment-id="${commentId}"]`);
+                if (!commentDiv) return;
+
+                const likeBtn      = commentDiv.querySelector('.mc-like-btn');
+                const dislikeBtn   = commentDiv.querySelector('.mc-dislike-btn');
+                const likeCountEl  = commentDiv.querySelector('.like-count');
+                const dislikeCount = commentDiv.querySelector('.dislike-count');
+
+                if (likeCountEl)  likeCountEl.textContent  = data.likes_count;
+                if (dislikeCount) dislikeCount.textContent = data.dislikes_count;
+
+                if (likeBtn && dislikeBtn) {
+                    likeBtn.classList.remove('mc-active');
+                    dislikeBtn.classList.remove('mc-active');
+                    if (data.user_reaction === 'like') {
+                        likeBtn.classList.add('mc-active');
+                    } else if (data.user_reaction === 'dislike') {
+                        dislikeBtn.classList.add('mc-active');
                     }
-                    
-                    if (dislikeCount) {
-                        dislikeCount.textContent = data.dislikes_count;
-                        console.log('Updated dislike count to:', data.dislikes_count);
-                    } else {
-                        console.warn('Dislike count element not found');
-                    }
-                    
-                    // Update button states
-                    if (likeBtn && dislikeBtn) {
-                        if (data.user_reaction === 'like') {
-                            likeBtn.classList.add('mc-active');
-                            dislikeBtn.classList.remove('mc-active');
-                            console.log('Set like button active');
-                        } else if (data.user_reaction === 'dislike') {
-                            dislikeBtn.classList.add('mc-active');
-                            likeBtn.classList.remove('mc-active');
-                            console.log('Set dislike button active');
-                        } else {
-                            // No reaction
-                            likeBtn.classList.remove('mc-active');
-                            dislikeBtn.classList.remove('mc-active');
-                            console.log('Removed active state from both buttons');
-                        }
-                    } else {
-                        console.warn('Like or dislike button not found');
-                    }
-                } else {
-                    console.error('Comment div not found for ID:', commentId);
                 }
             } else {
-                console.error('API returned success=false:', data);
+                console.error('Reaction error:', data.error);
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-        })
-        .finally(() => {
-            button.disabled = false;
-        });
+        .catch(err => console.error('Reaction error:', err))
+        .finally(() => { button.disabled = false; });
     }
-    
-    // Get CSRF token from cookies
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -563,100 +470,63 @@
         }
         return cookieValue;
     }
-    
-    // Add event listeners to existing like/dislike buttons
+
+    // attach handlers to existing like/dislike buttons
     document.querySelectorAll('.mc-like-btn, .mc-dislike-btn').forEach(button => {
         button.addEventListener('click', handleReactionClick);
     });
-    
-    // Set initial button states based on user reactions
+
+    // initial active state from backend
     let userReactions = {};
     try {
-        // Safely inject JSON using escapejs to avoid breaking the script
         const reactionsJson = '{{ user_reactions|default:"{}"|escapejs }}';
         userReactions = JSON.parse(reactionsJson);
     } catch (e) {
         console.error('Error parsing user reactions:', e);
         userReactions = {};
     }
+
     Object.keys(userReactions).forEach(commentId => {
         const commentDiv = document.getElementById(`comment-${commentId}`);
-        if (commentDiv) {
-            const likeBtn = commentDiv.querySelector('.mc-like-btn');
-            const dislikeBtn = commentDiv.querySelector('.mc-dislike-btn');
-            const reactionType = userReactions[commentId];
-            
-            if (reactionType === 'like' && likeBtn) {
-                likeBtn.classList.add('mc-active');
-            } else if (reactionType === 'dislike' && dislikeBtn) {
-                dislikeBtn.classList.add('mc-active');
-            }
+        if (!commentDiv) return;
+        const likeBtn     = commentDiv.querySelector('.mc-like-btn');
+        const dislikeBtn  = commentDiv.querySelector('.mc-dislike-btn');
+        const reaction    = userReactions[commentId];
+
+        if (reaction === 'like' && likeBtn) {
+            likeBtn.classList.add('mc-active');
+        } else if (reaction === 'dislike' && dislikeBtn) {
+            dislikeBtn.classList.add('mc-active');
         }
     });
 
-    document.getElementById('comment-submit').addEventListener('click', function() {
-
-        const input = document.getElementById('comment-input');
-
+    // ---------- SEND COMMENT ----------
+    document.getElementById('comment-submit').addEventListener('click', function () {
+        const input   = document.getElementById('comment-input');
         const message = input.value.trim();
 
-        
+        if (!message) return;
 
-        if (message) {
+        chatSocket.send(JSON.stringify({
+            message:   message,
+            username:  userName,
+            parent_id: replyToCommentId
+        }));
 
-            chatSocket.send(JSON.stringify({
+        input.value = '';
 
-                'message': message,
-
-                'username': userName,
-
-                'parent_id': replyToCommentId
-
-            }));
-
-            
-
-            input.value = '';
-
-            
-
-            // Reset reply state
-
-            if (replyToCommentId) {
-
-                document.getElementById('cancel-reply').click();
-
-            }
-
+        if (replyToCommentId) {
+            document.getElementById('cancel-reply').click();
         }
-
     });
 
-    // Run UTC time conversion on page load
-    function updateUTCTimes() {
-        document.querySelectorAll('.utc-time').forEach(el => {
-            const utc = el.dataset.utc;
-            if (utc) {
-                el.textContent = formatToLocalTime(utc);
-            }
-        });
-    }
-
-    // Run on page load
-    document.addEventListener("DOMContentLoaded", function() {
-        updateUTCTimes();
-    });
-
-    // Also run immediately if DOM is already loaded
+    // run timezone conversion
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', updateUTCTimes);
     } else {
         updateUTCTimes();
     }
-
 </script>
-
-
 
 <style>
 /* Main Container */
@@ -879,7 +749,8 @@
     gap: 8px;
 }
 
-.mc-comment-author, .mc-reply-author {
+.mc-comment-author,
+.mc-reply-author {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -919,13 +790,23 @@
     color: #10b981;
 }
 
+.mc-comment-author-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
 .mc-comment-time {
     font-size: 0.8rem;
     color: #6b7280;
     white-space: nowrap;
 }
 
-.mc-comment-text, .mc-reply-text {
+.mc-comment-text,
+.mc-reply-text {
     color: #d1d5db;
     font-size: 0.9rem;
     line-height: 1.6;
@@ -966,7 +847,14 @@
     gap: 8px;
 }
 
-.mc-like-btn, .mc-dislike-btn {
+/* Hide like/dislike for own comments/replies */
+.mc-comment[data-is-own="true"] .mc-reaction-buttons,
+.mc-reply[data-is-own="true"] .mc-reaction-buttons {
+    display: none;
+}
+
+.mc-like-btn,
+.mc-dislike-btn {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1165,13 +1053,13 @@
 }
 
 @keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(-10px); 
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
     }
-    to { 
-        opacity: 1; 
-        transform: translateY(0); 
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -1181,16 +1069,17 @@
         margin: 20px auto;
         padding: 0 16px;
     }
-    
-    .mc-model-card, .mc-comments-card {
+
+    .mc-model-card,
+    .mc-comments-card {
         border-radius: 16px;
         padding: 16px;
     }
-    
+
     .mc-comment-inner {
         gap: 10px;
     }
-    
+
     .mc-comment-avatar {
         width: 36px;
         height: 36px;

@@ -300,7 +300,7 @@
   background: rgba(255,0,0,0.14);
 }
 
-/* empty state */
+/* empty state for list page */
 .empty-state {
   background: rgba(255,255,255,0.02);
   border: 1px dashed rgba(255,255,255,0.15);
@@ -621,10 +621,7 @@ function getCookie(name) {
 
       <hr class="versions-row-sep">
     {% empty %}
-      <div class="text-center text-muted py-4">
-        <i class="fas fa-inbox fa-2x mb-2"></i>
-        <p class="mb-0">No versions found</p>
-      </div>
+      <div class="versions-empty">No versions found</div>
     {% endfor %}
   </div>
 </div>
@@ -772,6 +769,14 @@ function getCookie(name) {
   border:0;
   border-top:1px solid rgba(255,255,255,0.07);
   margin:0 0 16px 0;
+}
+
+/* center "No versions found" */
+.versions-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  padding: 24px 0 8px;
 }
 
 .version-row-header {
