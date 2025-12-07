@@ -214,9 +214,6 @@
                                     <h6 class="mb-0">
                                         {{ comment.user.username }}
                                         <span class="tm-badge tm-badge-info">{{ comment.user.profile.role }}</span>
-                                        {% if comment.user == version.upload.user %}
-                                        <span class="tm-badge tm-badge-success">Author</span>
-                                        {% endif %}
                                     </h6>
                                     <small class="tm-text-muted utc-time" data-utc="{{ comment.created_at_utc }}">{{ comment.created_at|date:"M d, Y H:i" }}</small>
                                 </div>
@@ -226,6 +223,7 @@
                                         <span>💬</span>
                                         <span>Reply</span>
                                     </button>
+                                    {% if request.user.is_authenticated and comment.user_id != request.user.id %}
                                     <div class="d-flex align-items-center gap-2">
                                         <button class="btn btn-sm btn-outline-primary like-btn" 
                                                 data-comment-id="{{ comment.id }}"
@@ -240,6 +238,7 @@
                                             <span class="dislike-count">{{ comment.get_dislikes_count }}</span>
                                         </button>
                                     </div>
+                                    {% endif %}
                                 </div>
                                 
                                 <!-- Replies -->
@@ -251,13 +250,11 @@
                                             <h6 class="mb-0">
                                                 {{ reply.user.username }}
                                                 <span class="tm-badge tm-badge-info">{{ reply.user.profile.role }}</span>
-                                                {% if reply.user == version.upload.user %}
-                                                <span class="tm-badge tm-badge-success">Author</span>
-                                                {% endif %}
                                             </h6>
                                             <small class="tm-text-muted utc-time" data-utc="{{ reply.created_at_utc }}">{{ reply.created_at|date:"M d, Y H:i" }}</small>
                                         </div>
                                         <p class="tm-comment-content mb-0 mt-1">{{ reply.content }}</p>
+                                        {% if request.user.is_authenticated and reply.user_id != request.user.id %}
                                         <div class="d-flex align-items-center gap-2 mt-2">
                                             <button class="btn btn-sm btn-outline-primary like-btn" 
                                                     data-comment-id="{{ reply.id }}"
@@ -272,6 +269,7 @@
                                                 <span class="dislike-count">{{ reply.get_dislikes_count }}</span>
                                             </button>
                                         </div>
+                                        {% endif %}
                                     </div>
                                     {% endfor %}
                                 </div>
@@ -560,6 +558,11 @@
 .tm-badge-success {
     background-color: rgba(16, 185, 129, 0.2);
     color: #10b981;
+}
+
+.tm-badge-warning {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
 }
 
 .tm-text-muted {
@@ -866,9 +869,7 @@
         commentDiv.className = isReply ? 'tm-reply mb-2' : 'tm-comment mb-3';
         commentDiv.id = `comment-${data.comment_id}`;
         
-        const authorBadge = data.username === authorUsername 
-            ? '<span class="tm-badge tm-badge-success">Author</span>' 
-            : '';
+        const authorBadge = '';
         
         if (isReply) {
             commentDiv.innerHTML = `
@@ -881,6 +882,7 @@
                     <small class="tm-text-muted utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</small>
                 </div>
                 <p class="tm-comment-content mb-0 mt-1">${data.message}</p>
+                ${data.username !== userName ? `
                 <div class="d-flex align-items-center gap-2 mt-2">
                     <button class="btn btn-sm btn-outline-primary like-btn" 
                             data-comment-id="${data.comment_id}"
@@ -895,6 +897,7 @@
                         <span class="dislike-count">0</span>
                     </button>
                 </div>
+                ` : ''}
             `;
             
             // For replies, add event listeners to like/dislike buttons
@@ -927,6 +930,7 @@
                                 <span>💬</span>
                                 <span>Reply</span>
                             </button>
+                            ${data.username !== userName ? `
                             <div class="d-flex align-items-center gap-2">
                                 <button class="btn btn-sm btn-outline-primary like-btn" 
                                         data-comment-id="${data.comment_id}"
@@ -941,6 +945,7 @@
                                     <span class="dislike-count">0</span>
                                 </button>
                             </div>
+                            ` : ''}
                         </div>
                         <div class="tm-replies ms-4 mt-2" id="replies-${data.comment_id}"></div>
                     </div>
