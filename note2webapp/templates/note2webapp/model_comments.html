@@ -115,7 +115,7 @@
                                             </div>
                                             <p class="mc-reply-text">{{ reply.content }}</p>
 
-                                            {% if request.user.is_authenticated and reply.user_id != request.user.id %}
+                                            {% if request.user.is_authenticated && reply.user_id != request.user.id %}
                                             <div class="mc-reaction-buttons mc-reply-reactions">
                                                 <button class="mc-like-btn"
                                                         data-comment-id="{{ reply.id }}"
@@ -215,9 +215,11 @@
     let replyToUsername  = null;
 
     // ---------- WEBSOCKET ----------
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/model/' + versionId + '/comments/'
-    );
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = wsProtocol + '//' + window.location.host + '/ws/model/' + versionId + '/comments/';
+    console.log('Connecting to WebSocket:', wsUrl);
+
+    const chatSocket = new WebSocket(wsUrl);
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
@@ -225,7 +227,11 @@
     };
 
     chatSocket.onclose = function(e) {
-        console.error('WebSocket closed unexpectedly');
+        console.error('WebSocket closed unexpectedly', e);
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
     };
 
     // ---------- ADD COMMENT TO UI (for realtime messages) ----------
@@ -407,7 +413,7 @@
 
         if (!commentId || !reactionType) return;
 
-        // ✅ FIXED: Check if this is the user's own comment/reply before making request
+        // Check if this is the user's own comment/reply before making request
         const commentDiv = document.getElementById(`comment-${commentId}`);
         if (commentDiv && commentDiv.dataset.isOwn === 'true') {
             alert("You can't react to your own comment.");
@@ -506,6 +512,11 @@
         const message = input.value.trim();
 
         if (!message) return;
+
+        if (chatSocket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not open, readyState:', chatSocket.readyState);
+            return;
+        }
 
         chatSocket.send(JSON.stringify({
             message:   message,
