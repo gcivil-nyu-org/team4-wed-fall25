@@ -215,9 +215,11 @@
     let replyToUsername  = null;
 
     // ---------- WEBSOCKET ----------
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/model/' + versionId + '/comments/'
-    );
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = wsProtocol + '//' + window.location.host + '/ws/model/' + versionId + '/comments/';
+    console.log('Connecting to WebSocket:', wsUrl);
+
+    const chatSocket = new WebSocket(wsUrl);
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
@@ -225,7 +227,11 @@
     };
 
     chatSocket.onclose = function(e) {
-        console.error('WebSocket closed unexpectedly');
+        console.error('WebSocket closed unexpectedly', e);
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
     };
 
     // ---------- ADD COMMENT TO UI (for realtime messages) ----------
@@ -407,8 +413,9 @@
 
         if (!commentId || !reactionType) return;
 
-        // ✅ FIXED: Check if this is the user's own comment/reply before making request
-        const commentDiv = document.getElementById(`comment-${commentId}`);
+        // Block reactions on own comments
+        const commentDiv = document.getElementById(`comment-${commentId}`) ||
+                           document.querySelector(`[data-comment-id="${commentId}"]`);
         if (commentDiv && commentDiv.dataset.isOwn === 'true') {
             alert("You can't react to your own comment.");
             return;
@@ -427,14 +434,14 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                let commentDiv = document.getElementById(`comment-${commentId}`) ||
-                                 document.querySelector(`[data-comment-id="${commentId}"]`);
-                if (!commentDiv) return;
+                const cd = document.getElementById(`comment-${commentId}`) ||
+                           document.querySelector(`[data-comment-id="${commentId}"]`);
+                if (!cd) return;
 
-                const likeBtn      = commentDiv.querySelector('.mc-like-btn');
-                const dislikeBtn   = commentDiv.querySelector('.mc-dislike-btn');
-                const likeCountEl  = commentDiv.querySelector('.like-count');
-                const dislikeCount = commentDiv.querySelector('.dislike-count');
+                const likeBtn      = cd.querySelector('.mc-like-btn');
+                const dislikeBtn   = cd.querySelector('.mc-dislike-btn');
+                const likeCountEl  = cd.querySelector('.like-count');
+                const dislikeCount = cd.querySelector('.dislike-count');
 
                 if (likeCountEl)  likeCountEl.textContent  = data.likes_count;
                 if (dislikeCount) dislikeCount.textContent = data.dislikes_count;
@@ -506,6 +513,11 @@
         const message = input.value.trim();
 
         if (!message) return;
+
+        if (chatSocket.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket is not open, readyState:', chatSocket.readyState);
+            return;
+        }
 
         chatSocket.send(JSON.stringify({
             message:   message,
