@@ -8,7 +8,6 @@ from note2webapp.models import (
     ModelComment,
     CommentReaction,
     Notification,
-    Profile,
 )
 
 User = get_user_model()
@@ -31,9 +30,7 @@ class CommentReactionNotificationTests(TestCase):
         self.reviewer.profile.save()
 
         # model + version
-        self.upload = ModelUpload.objects.create(
-            user=self.uploader, name="Senti"
-        )
+        self.upload = ModelUpload.objects.create(user=self.uploader, name="Senti")
         self.version = ModelVersion.objects.create(
             upload=self.upload, tag="v1", status="PASS", is_active=True
         )
@@ -92,7 +89,7 @@ class CommentReactionNotificationTests(TestCase):
             ).exists()
         )
 
-                # notification created for uploader
+        # notification created for uploader
         notifs = Notification.objects.filter(user=self.uploader)
         self.assertEqual(notifs.count(), 1)
         n = notifs.first()
