@@ -77,17 +77,19 @@
                                             <span>Reply</span>
                                         </button>
 
-                                        {% if request.user.is_authenticated and comment.user_id != request.user.id %}
+                                        {% if request.user.is_authenticated %}
                                         <div class="mc-reaction-buttons">
                                             <button class="mc-like-btn"
                                                     data-comment-id="{{ comment.id }}"
-                                                    data-reaction-type="like">
+                                                    data-reaction-type="like"
+                                                    {% if comment.user_id == request.user.id %}disabled{% endif %}>
                                                 <span class="mc-reaction-icon">👍</span>
                                                 <span class="mc-reaction-count like-count">{{ comment.get_likes_count }}</span>
                                             </button>
                                             <button class="mc-dislike-btn"
                                                     data-comment-id="{{ comment.id }}"
-                                                    data-reaction-type="dislike">
+                                                    data-reaction-type="dislike"
+                                                    {% if comment.user_id == request.user.id %}disabled{% endif %}>
                                                 <span class="mc-reaction-icon">👎</span>
                                                 <span class="mc-reaction-count dislike-count">{{ comment.get_dislikes_count }}</span>
                                             </button>
@@ -115,17 +117,19 @@
                                             </div>
                                             <p class="mc-reply-text">{{ reply.content }}</p>
 
-                                            {% if request.user.is_authenticated and reply.user_id != request.user.id %}
+                                            {% if request.user.is_authenticated %}
                                             <div class="mc-reaction-buttons mc-reply-reactions">
                                                 <button class="mc-like-btn"
                                                         data-comment-id="{{ reply.id }}"
-                                                        data-reaction-type="like">
+                                                        data-reaction-type="like"
+                                                        {% if reply.user_id == request.user.id %}disabled{% endif %}>
                                                     <span class="mc-reaction-icon">👍</span>
                                                     <span class="mc-reaction-count like-count">{{ reply.get_likes_count }}</span>
                                                 </button>
                                                 <button class="mc-dislike-btn"
                                                         data-comment-id="{{ reply.id }}"
-                                                        data-reaction-type="dislike">
+                                                        data-reaction-type="dislike"
+                                                        {% if reply.user_id == request.user.id %}disabled{% endif %}>
                                                     <span class="mc-reaction-icon">👎</span>
                                                     <span class="mc-reaction-count dislike-count">{{ reply.get_dislikes_count }}</span>
                                                 </button>
@@ -269,21 +273,22 @@
                         <span class="mc-comment-time utc-time" data-utc="${timeAttr}">${data.timestamp}</span>
                     </div>
                     <p class="mc-reply-text">${data.message}</p>
-                    ${!isOwn ? `
                     <div class="mc-reaction-buttons mc-reply-reactions">
                         <button class="mc-like-btn"
                                 data-comment-id="${data.comment_id}"
-                                data-reaction-type="like">
+                                data-reaction-type="like"
+                                ${isOwn ? 'disabled' : ''}>
                             <span class="mc-reaction-icon">👍</span>
                             <span class="mc-reaction-count like-count">0</span>
                         </button>
                         <button class="mc-dislike-btn"
                                 data-comment-id="${data.comment_id}"
-                                data-reaction-type="dislike">
+                                data-reaction-type="dislike"
+                                ${isOwn ? 'disabled' : ''}>
                             <span class="mc-reaction-icon">👎</span>
                             <span class="mc-reaction-count dislike-count">0</span>
                         </button>
-                    </div>` : '' }
+                    </div>
                 </div>
             `;
         } else {
@@ -310,21 +315,22 @@
                                     <span>💬</span>
                                     <span>Reply</span>
                                 </button>
-                                ${!isOwn ? `
                                 <div class="mc-reaction-buttons">
                                     <button class="mc-like-btn"
                                             data-comment-id="${data.comment_id}"
-                                            data-reaction-type="like">
+                                            data-reaction-type="like"
+                                            ${isOwn ? 'disabled' : ''}>
                                         <span class="mc-reaction-icon">👍</span>
                                         <span class="mc-reaction-count like-count">0</span>
                                     </button>
                                     <button class="mc-dislike-btn"
                                             data-comment-id="${data.comment_id}"
-                                            data-reaction-type="dislike">
+                                            data-reaction-type="dislike"
+                                            ${isOwn ? 'disabled' : ''}>
                                         <span class="mc-reaction-icon">👎</span>
                                         <span class="mc-reaction-count dislike-count">0</span>
                                     </button>
-                                </div>` : '' }
+                                </div>
                             </div>
                             <div class="mc-replies" id="replies-${data.comment_id}"></div>
                         </div>
@@ -859,12 +865,6 @@
     gap: 8px;
 }
 
-/* Hide like/dislike for own comments/replies */
-.mc-comment[data-is-own="true"] .mc-reaction-buttons,
-.mc-reply[data-is-own="true"] .mc-reaction-buttons {
-    display: none;
-}
-
 .mc-like-btn,
 .mc-dislike-btn {
     display: flex;
@@ -890,6 +890,13 @@
     background-color: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.3);
     color: #f87171;
+}
+
+/* Disabled reaction buttons (own comments) */
+.mc-like-btn:disabled,
+.mc-dislike-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .mc-like-btn.mc-active {

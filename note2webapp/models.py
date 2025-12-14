@@ -201,3 +201,46 @@ class CommentReaction(models.Model):
 
     def __str__(self):
         return f"{self.user.username} {self.reaction_type}s comment {self.comment.id}"
+
+
+class Notification(models.Model):
+    TARGET_TYPES = [
+        ("comment", "Comment"),
+        ("version", "Model Version"),
+        ("model", "Model Upload"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="actor_notifications",
+    )
+
+    # 👇 THIS is what list_notifications is trying to read
+    verb = models.CharField(max_length=255, blank=True)
+
+    target_type = models.CharField(
+        max_length=50,
+        choices=TARGET_TYPES,
+        null=True,
+        blank=True,
+    )
+    target_id = models.PositiveIntegerField(null=True, blank=True)
+
+    extra = models.JSONField(default=dict, blank=True)
+
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Notification for {self.user} – {self.verb or 'Notification'}"
