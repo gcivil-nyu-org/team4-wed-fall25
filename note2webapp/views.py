@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
 from django.utils import timezone
 from django import forms
 from django.db import transaction, IntegrityError, models
@@ -24,7 +24,14 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
 from .forms import UploadForm, VersionForm
-from .models import ModelUpload, ModelVersion, Profile, ModelComment, CommentReaction
+from .models import (
+    ModelUpload,
+    ModelVersion,
+    Profile,
+    ModelComment,
+    CommentReaction,
+    Notification,
+)
 from .utils import (
     validate_model,
     test_model_on_cpu,
@@ -185,7 +192,7 @@ def model_uploader_dashboard(request):
 
     context = {"uploads": uploads, "page": page}
 
-    # 1) CREATE MODEL
+    # 1) CREATE MODEL (no notifications here)
     if page == "create":
         if request.method == "POST":
             form = UploadForm(request.POST)
@@ -200,9 +207,11 @@ def model_uploader_dashboard(request):
                     )
                     context["form"] = form
                     return render(request, "note2webapp/home.html", context)
+
                 upload = form.save(commit=False)
                 upload.user = request.user
                 upload.save()
+
                 messages.success(request, f"Model '{model_name}' created successfully!")
                 return redirect(f"/dashboard/?page=detail&pk={upload.pk}")
         else:
@@ -226,7 +235,7 @@ def model_uploader_dashboard(request):
             {"upload": upload, "versions": versions, "version_counts": version_counts}
         )
 
-    # 3) ADD VERSION
+    # 3) ADD VERSION (no notifications here either)
     elif page == "add_version" and pk:
         upload = get_object_or_404(ModelUpload, pk=pk, user=request.user)
         retry_version_id = request.GET.get("retry")
@@ -477,6 +486,7 @@ def soft_delete_version(request, version_id):
             return redirect("dashboard")
 
     if request.method == "POST":
+        # soft-delete flags
         version.is_deleted = True
         version.deleted_at = timezone.now()
         version.is_active = False
@@ -485,11 +495,42 @@ def soft_delete_version(request, version_id):
         # physically remove files + folder
         delete_version_files_and_dir(version)
 
+        # 🔔 NOTIFICATIONS: let reviewers (and possibly the uploader) know
+        try:
+            # Receivers: all reviewers + uploader (if different from actor)
+            receivers = list(User.objects.filter(profile__role="reviewer").distinct())
+            uploader = version.upload.user
+            if uploader and uploader != request.user and uploader not in receivers:
+                receivers.append(uploader)
+
+            if receivers:
+                notif_msg = (
+                    f"{request.user.username} deleted {version.upload.name} "
+                    f"(version v{version.version_number}, tag '{version.tag}')"
+                )
+                # link back to the model’s versions page
+                url = reverse("model_versions", args=[version.upload.id])
+
+                Notification.objects.bulk_create(
+                    [
+                        Notification(
+                            user=r,
+                            actor=request.user,
+                            verb=notif_msg,
+                            extra={"url": url},  # URL goes inside extra JSON
+                        )
+                        for r in receivers
+                    ]
+                )
+        except Exception as e:
+            # Don't block delete if notifications fail
+            print("Error creating delete-version notification:", e)
+
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
                 {
                     "success": True,
-                    "message": f"Version (Tag: {version.tag}) deleted successfully",
+                    "message": (f"Version (Tag: {version.tag}) deleted successfully"),
                     "reload": True,
                 }
             )
@@ -554,6 +595,28 @@ def activate_version(request, version_id):
     version.is_active = True
     version.save()
 
+    # 🔔 Notify reviewers that a specific version was activated
+    reviewers = User.objects.filter(profile__role="reviewer").exclude(
+        id=request.user.id
+    )
+    if reviewers.exists():
+        notif_msg = (
+            f"{request.user.username} activated {version.upload.name} "
+            f"(version v{version.version_number}, tag '{version.tag}')"
+        )
+        url = reverse("test_model_cpu", args=[version.id])
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    user=r,
+                    actor=request.user,
+                    verb=notif_msg,
+                    extra={"url": url},  # <— store URL in extra, not as a field
+                )
+                for r in reviewers
+            ]
+        )
+
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse(
             {"success": True, "message": f"Version '{version.tag}' is now active."}
@@ -587,16 +650,45 @@ def deprecate_version(request, version_id):
         return redirect("dashboard")
 
     if request.method == "POST":
+        # mark version as deprecated (inactive)
         version.is_active = False
         version.save()
+
+        # 🔔 Notify reviewers that a specific version was deprecated
+        reviewers = User.objects.filter(profile__role="reviewer").exclude(
+            id=request.user.id
+        )
+        if reviewers.exists():
+            notif_msg = (
+                f"{request.user.username} deprecated {version.upload.name} "
+                f"(version v{version.version_number}, tag '{version.tag}')"
+            )
+            url = reverse("test_model_cpu", args=[version.id])
+
+            Notification.objects.bulk_create(
+                [
+                    Notification(
+                        user=r,
+                        actor=request.user,
+                        verb=notif_msg,
+                        extra={"url": url},  # <- URL stored in extra, not as a field
+                    )
+                    for r in reviewers
+                ]
+            )
+
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
                 {
                     "success": True,
-                    "message": f'Version with tag "{version.tag}" has been deprecated (deactivated)',
+                    "message": (
+                        f'Version with tag "{version.tag}" has been '
+                        "deprecated (deactivated)"
+                    ),
                     "version_id": version.id,
                 }
             )
+
         messages.success(
             request, f"Version with tag '{version.tag}' has been deprecated."
         )
@@ -636,6 +728,27 @@ def delete_model(request, model_id):
         model_name = model_upload.name
         delete_model_media_tree(model_upload)
         model_upload.delete()
+
+        # 🔔 Notify reviewers that this model was deleted
+        from django.urls import reverse
+
+        reviewers = User.objects.filter(profile__role="reviewer")
+        notif_msg = f"{request.user.username} deleted model '{model_name}'"
+        notif_url = f"{reverse('reviewer_dashboard')}?page=list"
+
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    user=r,
+                    actor=request.user,
+                    verb=notif_msg,
+                    target_type="model",
+                    target_id=model_id,
+                    extra={"url": notif_url},
+                )
+                for r in reviewers
+            ]
+        )
 
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse(
@@ -1269,8 +1382,7 @@ def toggle_comment_reaction(request, comment_id):
     """
     comment = get_object_or_404(ModelComment, id=comment_id)
 
-    # 🔒 Block reacting to your own comment (uploader OR reviewer)
-    # This is enforced on frontend AND backend for security
+    # 🔒 Block reacting to your own comment
     if comment.user_id == request.user.id:
         return JsonResponse(
             {
@@ -1290,9 +1402,6 @@ def toggle_comment_reaction(request, comment_id):
         )
 
     # Toggle / switch the reaction
-    # If the user already has this reaction, delete it.
-    # If they have a different reaction, replace it.
-    # If they have no reaction, create it.
     reaction, created = CommentReaction.objects.get_or_create(
         user=request.user,
         comment=comment,
@@ -1318,6 +1427,31 @@ def toggle_comment_reaction(request, comment_id):
     except CommentReaction.DoesNotExist:
         user_reaction = None
 
+    # 🔔 Create a notification for the comment owner when someone reacts
+    if user_reaction in ("like", "dislike") and comment.user_id != request.user.id:
+        from .models import Notification
+
+        # Try to link to comments page, fallback to test_model page
+        try:
+            url = reverse("model_comments_view", args=[comment.model_version.id])
+        except NoReverseMatch:
+            # Fallback so we don't crash; adjust if your real name is different
+            url = reverse("test_model_cpu", args=[comment.model_version.id])
+
+        message = (
+            f"{request.user.username} {user_reaction}d your comment on "
+            f"{comment.model_version.upload.name} (v{comment.model_version.tag})"
+        )
+
+        Notification.objects.create(
+            user=comment.user,  # receiver
+            actor=request.user,  # who reacted
+            verb=message,  # short text shown in dropdown
+            target_type="comment",
+            target_id=comment.id,
+            extra={"url": url},  # store URL in JSON
+        )
+
     return JsonResponse(
         {
             "success": True,
@@ -1326,3 +1460,59 @@ def toggle_comment_reaction(request, comment_id):
             "user_reaction": user_reaction,
         }
     )
+
+
+@login_required
+def list_notifications(request):
+    """
+    Return latest notifications for the logged-in user.
+
+    - ?only_unread=1  → return only unread notifications (for green dot check)
+    - otherwise       → return latest notifications (read + unread)
+
+    We also skip old 'junk' notifications whose verb is just '/some/path'.
+    """
+    only_unread = request.GET.get("only_unread") == "1"
+
+    qs = Notification.objects.filter(user=request.user)
+    if only_unread:
+        qs = qs.filter(is_read=False)
+
+    qs = qs.order_by("-created_at")[:20]
+
+    notifications_data = []
+    for n in qs:
+        verb = (n.verb or "").strip()
+
+        # Skip legacy junk: verb that is only a bare URL path
+        if verb.startswith("/") and " " not in verb:
+            continue
+
+        extra = n.extra or {}
+        url = extra.get("url", "")
+
+        notifications_data.append(
+            {
+                "id": n.id,
+                "message": verb or "Notification",
+                "url": url,
+                # send raw ISO timestamp; let the browser format in local time
+                "created_at": n.created_at.isoformat(),
+                "unread": not n.is_read,
+            }
+        )
+
+    return JsonResponse({"notifications": notifications_data})
+
+
+@login_required
+@require_POST
+def mark_all_notifications_read(request):
+    """
+    Mark all notifications for the current user as read.
+
+    Endpoint:
+      POST /api/notifications/mark-all-read/
+    """
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return JsonResponse({"success": True})

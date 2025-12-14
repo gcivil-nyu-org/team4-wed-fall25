@@ -60,4 +60,10 @@ urlpatterns = [
         views.toggle_comment_reaction,
         name="toggle_comment_reaction",
     ),
+    path("api/notifications/", views.list_notifications, name="list_notifications"),
+    path(
+        "api/notifications/mark-all-read/",
+        views.mark_all_notifications_read,
+        name="mark_all_notifications_read",
+    ),
 ]

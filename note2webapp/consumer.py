@@ -4,7 +4,9 @@ import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
-from .models import ModelVersion, ModelComment
+from django.urls import reverse
+
+from .models import ModelVersion, ModelComment, Notification  # ⬅️ added Notification
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ class ModelCommentConsumer(AsyncWebsocketConsumer):
             if not message or not username:
                 return
 
-            # Save comment to database
+            # Save comment to database (and create notifications)
             comment_data = await self.save_comment(
                 username, self.model_version_id, message, parent_id
             )
@@ -98,6 +100,51 @@ class ModelCommentConsumer(AsyncWebsocketConsumer):
             comment = ModelComment.objects.create(
                 user=user, model_version=version, content=message, parent=parent
             )
+
+            # 🔔 Create notifications (comment + reply)
+            try:
+                upload = version.upload
+                recipients = set()
+
+                # 1) Notify model uploader on any comment (top-level or reply),
+                #    as long as the actor is not the uploader.
+                if upload.user_id != user.id:
+                    recipients.add(("comment", upload.user))
+
+                # 2) If this is a reply, also notify parent comment owner
+                if parent and parent.user_id != user.id:
+                    recipients.add(("reply", parent.user))
+
+                # Build link to comments page
+                try:
+                    url = reverse("model_comments", args=[version.id])
+                except Exception:
+                    url = ""
+
+                for notif_type, recipient in recipients:
+                    if notif_type == "reply":
+                        msg = (
+                            f"{user.username} replied to your comment on "
+                            f"'{upload.name}' ({version.tag})"
+                        )
+                    else:
+                        msg = (
+                            f"{user.username} commented on "
+                            f"'{upload.name}' ({version.tag})"
+                        )
+
+                    Notification.objects.create(
+                        user=recipient,
+                        actor=user,
+                        notification_type=notif_type,  # "comment" or "reply"
+                        message=msg,
+                        url=url,
+                    )
+
+            except Exception as e:
+                logger.error(
+                    f"Error creating notifications for comment {comment.id}: {e}"
+                )
 
             return {
                 "id": comment.id,

@@ -223,17 +223,19 @@
                                         <span>💬</span>
                                         <span>Reply</span>
                                     </button>
-                                    {% if request.user.is_authenticated and comment.user_id != request.user.id %}
+                                    {% if request.user.is_authenticated %}
                                     <div class="d-flex align-items-center gap-2">
                                         <button class="btn btn-sm btn-outline-primary like-btn" 
                                                 data-comment-id="{{ comment.id }}"
-                                                data-reaction-type="like">
+                                                data-reaction-type="like"
+                                                {% if comment.user_id == request.user.id %}disabled{% endif %}>
                                             <span class="like-icon">👍</span>
                                             <span class="like-count">{{ comment.get_likes_count }}</span>
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger dislike-btn" 
                                                 data-comment-id="{{ comment.id }}"
-                                                data-reaction-type="dislike">
+                                                data-reaction-type="dislike"
+                                                {% if comment.user_id == request.user.id %}disabled{% endif %}>
                                             <span class="dislike-icon">👎</span>
                                             <span class="dislike-count">{{ comment.get_dislikes_count }}</span>
                                         </button>
@@ -245,7 +247,7 @@
                                 {% if comment.replies.all %}
                                 <div class="tm-replies ms-4 mt-2" id="replies-{{ comment.id }}">
                                     {% for reply in comment.replies.all %}
-                                    <div class="tm-reply mb-2">
+                                    <div class="tm-reply mb-2" id="comment-{{ reply.id }}" data-comment-id="{{ reply.id }}">
                                         <div class="d-flex justify-content-between">
                                             <h6 class="mb-0">
                                                 {{ reply.user.username }}
@@ -254,17 +256,19 @@
                                             <small class="tm-text-muted utc-time" data-utc="{{ reply.created_at_utc }}">{{ reply.created_at|date:"M d, Y H:i" }}</small>
                                         </div>
                                         <p class="tm-comment-content mb-0 mt-1">{{ reply.content }}</p>
-                                        {% if request.user.is_authenticated and reply.user_id != request.user.id %}
+                                        {% if request.user.is_authenticated %}
                                         <div class="d-flex align-items-center gap-2 mt-2">
                                             <button class="btn btn-sm btn-outline-primary like-btn" 
                                                     data-comment-id="{{ reply.id }}"
-                                                    data-reaction-type="like">
+                                                    data-reaction-type="like"
+                                                    {% if reply.user_id == request.user.id %}disabled{% endif %}>
                                                 <span class="like-icon">👍</span>
                                                 <span class="like-count">{{ reply.get_likes_count }}</span>
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger dislike-btn" 
                                                     data-comment-id="{{ reply.id }}"
-                                                    data-reaction-type="dislike">
+                                                    data-reaction-type="dislike"
+                                                    {% if reply.user_id == request.user.id %}disabled{% endif %}>
                                                 <span class="dislike-icon">👎</span>
                                                 <span class="dislike-count">{{ reply.get_dislikes_count }}</span>
                                             </button>
@@ -366,7 +370,7 @@
     margin-top: 4px;
     font-size: 0.8rem;
     color: #fca5a5;
-    min-height: 1.1em; /* keeps layout stable even when empty */
+    min-height: 1.1em;
 }
 
 .tm-textarea-error {
@@ -643,6 +647,13 @@
     color: #f87171 !important;
 }
 
+/* disabled reaction buttons for own comments */
+.tm-comments-section .like-btn:disabled,
+.tm-comments-section .dislike-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
 .tm-comments-section .like-btn.btn-primary,
 .tm-comments-section .like-btn.mc-active {
     background: rgba(59, 130, 246, 0.15) !important;
@@ -748,7 +759,7 @@
     padding: 14px;
 }
 .tm-result-output b {
-    color: #60a5fa; /* blue key labels */
+    color: #60a5fa;
 }
 
 /* responsive */
@@ -868,9 +879,12 @@
         const commentDiv = document.createElement('div');
         commentDiv.className = isReply ? 'tm-reply mb-2' : 'tm-comment mb-3';
         commentDiv.id = `comment-${data.comment_id}`;
-        
+        commentDiv.setAttribute('data-comment-id', data.comment_id);
+
+        const isOwn = data.username === userName;
         const authorBadge = '';
-        
+        const timeAttr = data.timestamp_utc || data.timestamp;
+
         if (isReply) {
             commentDiv.innerHTML = `
                 <div class="d-flex justify-content-between">
@@ -879,30 +893,30 @@
                         <span class="tm-badge tm-badge-info">${data.user_role}</span>
                         ${authorBadge}
                     </h6>
-                    <small class="tm-text-muted utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</small>
+                    <small class="tm-text-muted utc-time" data-utc="${timeAttr}">${data.timestamp}</small>
                 </div>
                 <p class="tm-comment-content mb-0 mt-1">${data.message}</p>
-                ${data.username !== userName ? `
                 <div class="d-flex align-items-center gap-2 mt-2">
                     <button class="btn btn-sm btn-outline-primary like-btn" 
                             data-comment-id="${data.comment_id}"
-                            data-reaction-type="like">
+                            data-reaction-type="like"
+                            ${isOwn ? 'disabled' : ''}>
                         <span class="like-icon">👍</span>
                         <span class="like-count">0</span>
                     </button>
                     <button class="btn btn-sm btn-outline-danger dislike-btn" 
                             data-comment-id="${data.comment_id}"
-                            data-reaction-type="dislike">
+                            data-reaction-type="dislike"
+                            ${isOwn ? 'disabled' : ''}>
                         <span class="dislike-icon">👎</span>
                         <span class="dislike-count">0</span>
                     </button>
                 </div>
-                ` : ''}
             `;
             
             // For replies, add event listeners to like/dislike buttons
             commentDiv.querySelectorAll('.like-btn, .dislike-btn').forEach(btn => {
-                if (!btn.hasAttribute('data-listener-attached')) {
+                if (!btn.hasAttribute('data-listener-attached') && !btn.disabled) {
                     btn.setAttribute('data-listener-attached', 'true');
                     btn.addEventListener('click', handleReactionClick);
                 }
@@ -922,7 +936,7 @@
                                 <span class="tm-badge tm-badge-info">${data.user_role}</span>
                                 ${authorBadge}
                             </h6>
-                            <small class="tm-text-muted utc-time" data-utc="${data.timestamp_utc || data.timestamp}">${data.timestamp}</small>
+                            <small class="tm-text-muted utc-time" data-utc="${timeAttr}">${data.timestamp}</small>
                         </div>
                         <p class="tm-comment-content mb-1 mt-2">${data.message}</p>
                         <div class="d-flex align-items-center gap-3 mt-2">
@@ -930,22 +944,22 @@
                                 <span>💬</span>
                                 <span>Reply</span>
                             </button>
-                            ${data.username !== userName ? `
                             <div class="d-flex align-items-center gap-2">
                                 <button class="btn btn-sm btn-outline-primary like-btn" 
                                         data-comment-id="${data.comment_id}"
-                                        data-reaction-type="like">
+                                        data-reaction-type="like"
+                                        ${isOwn ? 'disabled' : ''}>
                                     <span class="like-icon">👍</span>
                                     <span class="like-count">0</span>
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger dislike-btn" 
                                         data-comment-id="${data.comment_id}"
-                                        data-reaction-type="dislike">
+                                        data-reaction-type="dislike"
+                                        ${isOwn ? 'disabled' : ''}>
                                     <span class="dislike-icon">👎</span>
                                     <span class="dislike-count">0</span>
                                 </button>
                             </div>
-                            ` : ''}
                         </div>
                         <div class="tm-replies ms-4 mt-2" id="replies-${data.comment_id}"></div>
                     </div>
@@ -962,7 +976,7 @@
             
             // Add event listeners to like/dislike buttons
             commentDiv.querySelectorAll('.like-btn, .dislike-btn').forEach(btn => {
-                if (!btn.hasAttribute('data-listener-attached')) {
+                if (!btn.hasAttribute('data-listener-attached') && !btn.disabled) {
                     btn.setAttribute('data-listener-attached', 'true');
                     btn.addEventListener('click', handleReactionClick);
                 }
@@ -988,7 +1002,8 @@
     // Function to attach reaction listeners
     function attachReactionListeners() {
         document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
-            // Check if listener already attached
+            // Skip disabled (own comments)
+            if (button.disabled) return;
             if (!button.hasAttribute('data-listener-attached')) {
                 button.setAttribute('data-listener-attached', 'true');
                 button.addEventListener('click', handleReactionClick);
@@ -1012,14 +1027,11 @@
         
         console.log('Reaction click:', { commentId, reactionType });
         
-        // Disable button during request
         button.disabled = true;
         
-        // Create form data
         const formData = new FormData();
         formData.append('reaction_type', reactionType);
         
-        // Send request
         fetch(`/api/comment/${commentId}/reaction/`, {
             method: 'POST',
             body: formData,
@@ -1030,7 +1042,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Update counts
                 const commentDiv = document.getElementById(`comment-${commentId}`);
                 if (commentDiv) {
                     const likeBtn = commentDiv.querySelector('.like-btn');
@@ -1041,26 +1052,25 @@
                     if (likeCount) likeCount.textContent = data.likes_count;
                     if (dislikeCount) dislikeCount.textContent = data.dislikes_count;
                     
-                    // Update button states
-                    if (data.user_reaction === 'like') {
-                        likeBtn.classList.remove('btn-outline-primary');
-                        likeBtn.classList.add('btn-primary');
-                        dislikeBtn.classList.remove('btn-danger');
-                        dislikeBtn.classList.add('btn-outline-danger');
-                    } else if (data.user_reaction === 'dislike') {
-                        dislikeBtn.classList.remove('btn-outline-danger');
-                        dislikeBtn.classList.add('btn-danger');
-                        likeBtn.classList.remove('btn-primary');
-                        likeBtn.classList.add('btn-outline-primary');
-                    } else {
-                        // No reaction
-                        likeBtn.classList.remove('btn-primary');
-                        likeBtn.classList.add('btn-outline-primary');
-                        dislikeBtn.classList.remove('btn-danger');
-                        dislikeBtn.classList.add('btn-outline-danger');
+                    if (likeBtn && dislikeBtn) {
+                        if (data.user_reaction === 'like') {
+                            likeBtn.classList.remove('btn-outline-primary');
+                            likeBtn.classList.add('btn-primary');
+                            dislikeBtn.classList.remove('btn-danger');
+                            dislikeBtn.classList.add('btn-outline-danger');
+                        } else if (data.user_reaction === 'dislike') {
+                            dislikeBtn.classList.remove('btn-outline-danger');
+                            dislikeBtn.classList.add('btn-danger');
+                            likeBtn.classList.remove('btn-primary');
+                            likeBtn.classList.add('btn-outline-primary');
+                        } else {
+                            likeBtn.classList.remove('btn-primary');
+                            likeBtn.classList.add('btn-outline-primary');
+                            dislikeBtn.classList.remove('btn-danger');
+                            dislikeBtn.classList.add('btn-outline-danger');
+                        }
                     }
                     
-                    // Re-attach event listeners after DOM updates
                     setTimeout(() => {
                         attachReactionListeners();
                     }, 50);
@@ -1071,7 +1081,11 @@
             console.error('Error:', error);
         })
         .finally(() => {
-            button.disabled = false;
+            // Re-enable only if not disabled by own-comment logic
+            if (!button.closest('#comment-' + commentId).querySelector('.like-btn').disabled &&
+                !button.closest('#comment-' + commentId).querySelector('.dislike-btn').disabled) {
+                button.disabled = false;
+            }
         });
     }
     
@@ -1091,7 +1105,6 @@
         return cookieValue;
     }
     
-    // Attach listeners when DOM is ready
     function initReactionButtons() {
         attachReactionListeners();
         console.log('Initialized reaction buttons, found:', document.querySelectorAll('.like-btn, .dislike-btn').length);
@@ -1103,15 +1116,13 @@
         initReactionButtons();
     }
     
-    // Also attach listeners after a short delay to catch any dynamically loaded buttons
     setTimeout(initReactionButtons, 500);
     
-    // Set initial button states based on user reactions
+    // initial active state from backend
     let userReactions = {};
     try {
-    // Inject Django variable as a JSON string and parse on the JS side
-    const userReactionsRaw = '{{ user_reactions|default:"{}"|escapejs }}';
-    userReactions = JSON.parse(userReactionsRaw);
+        const userReactionsRaw = '{{ user_reactions|default:"{}"|escapejs }}';
+        userReactions = JSON.parse(userReactionsRaw);
     } catch (e) {
         console.error('Error parsing user reactions JSON:', e);
         userReactions = {};
@@ -1154,7 +1165,6 @@
         document.getElementById('submit-text').textContent = 'Comment';
     });
 
-    // Add event listeners to existing reply buttons
     document.querySelectorAll('.tm-reply-btn').forEach(button => {
         button.addEventListener('click', function() {
             handleReplyClick(this);
@@ -1186,20 +1196,14 @@
         }
     });
 
-    // Convert UTC timestamps to local device time
+    // timezone helpers
     function formatToLocalTime(utcString) {
         if (!utcString) return '';
-        
-        // Parse the ISO 8601 UTC string (should include timezone info)
         const date = new Date(utcString);
-        
-        // Check if date is valid
         if (isNaN(date.getTime())) {
             console.warn('Invalid date string:', utcString);
-            return utcString; // Return original if parsing fails
+            return utcString;
         }
-        
-        // Format to local time
         const options = {
             year: 'numeric',
             month: 'short',
@@ -1222,15 +1226,11 @@
         });
     }
 
-    // Run UTC time conversion on page load
     document.addEventListener("DOMContentLoaded", function() {
         updateUTCTimes();
     });
 
-    // Also run immediately if DOM is already loaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateUTCTimes);
-    } else {
+    if (document.readyState !== 'loading') {
         updateUTCTimes();
     }
 
